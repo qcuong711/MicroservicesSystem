@@ -18,6 +18,10 @@ namespace DataManagementApi.Models
         public int? ExaminerId { get; set; }
         public Lecturer? Examiner { get; set; }
 
+        // Foreign key to ThesisPeriod
+        public int ThesisPeriodId { get; set; }
+        public ThesisPeriod? ThesisPeriod { get; set; }
+
         // Foreign key to AcademicYear
         public int AcademicYearId { get; set; }
         public AcademicYear? AcademicYear { get; set; }

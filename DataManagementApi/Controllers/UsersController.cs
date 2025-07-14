@@ -1,6 +1,7 @@
 using DataManagementApi.Data;
 using DataManagementApi.Models;
-using DataManagementApi.Models.Dto;
+using DataManagementApi.Models.Dtos.User;
+using DataManagementApi.Models.Dtos.UserRole;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -43,7 +44,7 @@ namespace DataManagementApi.Controllers
                     .OrderByDescending(u => u.CreatedAt)
                     .Skip((page - 1) * limit)
                     .Take(limit)
-                    .Select(u => new UserDto
+                    .Select(u => new UserReadDto
                     {
                         Id = u.Id,
                         KeycloakUserId = u.KeycloakUserId,
@@ -53,6 +54,7 @@ namespace DataManagementApi.Controllers
                         IsActive = u.IsActive,
                         CreatedAt = u.CreatedAt,
                         UpdatedAt = u.UpdatedAt,
+                        DeletedAt = u.DeletedAt,
                         UserRoles = u.UserRoles.Select(ur => ur.Role.Name).ToList()
                     })
                     .ToListAsync();
@@ -73,7 +75,7 @@ namespace DataManagementApi.Controllers
 
         // GET: api/Users/5
         [HttpGet("{id}")]
-        public async Task<ActionResult<UserDto>> GetUser(int id)
+        public async Task<ActionResult<UserReadDto>> GetUser(int id)
         {
             try
             {
@@ -81,7 +83,7 @@ namespace DataManagementApi.Controllers
                     .Where(u => u.Id == id && u.DeletedAt == null)
                     .Include(u => u.UserRoles)
                     .ThenInclude(ur => ur.Role)
-                    .Select(u => new UserDto
+                    .Select(u => new UserReadDto
                     {
                         Id = u.Id,
                         KeycloakUserId = u.KeycloakUserId,
@@ -91,7 +93,7 @@ namespace DataManagementApi.Controllers
                         IsActive = u.IsActive,
                         CreatedAt = u.CreatedAt,
                         UpdatedAt = u.UpdatedAt,
-                        UserRoles = u.UserRoles.Select(ur => ur.Role.Name).ToList()
+                        DeletedAt = u.DeletedAt
                     })
                     .FirstOrDefaultAsync();
 
@@ -110,7 +112,7 @@ namespace DataManagementApi.Controllers
         
         // POST: api/Users
         [HttpPost]
-        public async Task<ActionResult<UserDto>> PostUser(CreateUserRequest request)
+        public async Task<ActionResult<UserReadDto>> PostUser(CreateUserDto request)
         {
             try
             {
@@ -197,7 +199,7 @@ namespace DataManagementApi.Controllers
                     return StatusCode(StatusCodes.Status500InternalServerError, "Lỗi khi tạo mới người dùng");
                 }
 
-                var userDto = new UserDto
+                var userDto = new UserReadDto
                 {
                     Id = createdUser.Id,
                     KeycloakUserId = createdUser.KeycloakUserId,
@@ -207,7 +209,7 @@ namespace DataManagementApi.Controllers
                     IsActive = createdUser.IsActive,
                     CreatedAt = createdUser.CreatedAt,
                     UpdatedAt = createdUser.UpdatedAt,
-                    UserRoles = createdUser.UserRoles.Select(ur => ur.Role.Name).ToList()
+                    DeletedAt = createdUser.DeletedAt
                 };
 
                 return CreatedAtAction(nameof(GetUser), new { id = user.Id }, userDto);
@@ -222,7 +224,7 @@ namespace DataManagementApi.Controllers
 
         // PUT: api/Users/5
         [HttpPut("{id}")]
-        public async Task<IActionResult> PutUser(int id, UpdateUserRequest request)
+        public async Task<IActionResult> PutUser(int id, UserUpdateDto request)
         {
             try
             {
@@ -278,7 +280,7 @@ namespace DataManagementApi.Controllers
                 if (!string.IsNullOrWhiteSpace(request.Name)) user.Name = request.Name;
                 if (!string.IsNullOrWhiteSpace(request.Email)) user.Email = request.Email;
                 if (request.AvatarUrl != null) user.AvatarUrl = request.AvatarUrl;
-                if (request.IsActive.HasValue) user.IsActive = request.IsActive.Value;
+                user.IsActive = request.IsActive;
                 user.UpdatedAt = DateTime.UtcNow;
 
                 // Update roles if provided
@@ -355,7 +357,7 @@ namespace DataManagementApi.Controllers
                 .OrderByDescending(u => u.DeletedAt)
                 .Skip((page - 1) * limit)
                 .Take(limit)
-                .Select(u => new UserDto 
+                .Select(u => new UserReadDto 
                 {
                     Id = u.Id,
                     KeycloakUserId = u.KeycloakUserId,
@@ -454,7 +456,7 @@ namespace DataManagementApi.Controllers
 
         // POST: api/Users/{userId}/roles
         [HttpPost("{userId}/roles")]
-        public async Task<IActionResult> AssignRoleToUser(int userId, [FromBody] UserRoleDto userRoleDto)
+        public async Task<IActionResult> AssignRoleToUser(int userId, [FromBody] DataManagementApi.Models.Dtos.UserRole.UserRoleDto userRoleDto)
         {
             if (userRoleDto == null)
             {
@@ -498,4 +500,4 @@ namespace DataManagementApi.Controllers
             return _context.Users.Any(e => e.Id == id && e.DeletedAt == null);
         }
     }
-} 
+}

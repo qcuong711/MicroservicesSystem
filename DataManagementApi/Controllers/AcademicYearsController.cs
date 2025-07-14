@@ -1,5 +1,6 @@
 using DataManagementApi.Data;
 using DataManagementApi.Models;
+using DataManagementApi.Models.Dtos.AcademicYear;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -26,20 +27,25 @@ namespace DataManagementApi.Controllers
             try
             {
                 var query = _context.AcademicYears.Where(ay => ay.DeletedAt == null);
-
                 if (!string.IsNullOrEmpty(search))
                 {
                     query = query.Where(y => y.Name.Contains(search));
                 }
-
                 var totalCount = await query.CountAsync();
-
                 var years = await query
                     .OrderByDescending(y => y.StartDate)
                     .Skip((page - 1) * limit)
                     .Take(limit)
+                    .Select(y => new AcademicYearReadDto {
+                        Id = y.Id,
+                        Name = y.Name,
+                        StartDate = y.StartDate,
+                        EndDate = y.EndDate,
+                        CreatedAt = y.CreatedAt,
+                        UpdatedAt = y.UpdatedAt,
+                        DeletedAt = y.DeletedAt
+                    })
                     .ToListAsync();
-
                 return Ok(new
                 {
                     data = years,
@@ -56,37 +62,54 @@ namespace DataManagementApi.Controllers
 
         // GET: api/AcademicYears/all
         [HttpGet("all")]
-        public async Task<ActionResult<IEnumerable<AcademicYear>>> GetAllAcademicYears()
+        public async Task<ActionResult<IEnumerable<AcademicYearReadDto>>> GetAllAcademicYears()
         {
             try
             {
-                return await _context.AcademicYears
+                var years = await _context.AcademicYears
                     .Where(ay => ay.DeletedAt == null)
                     .OrderByDescending(y => y.StartDate)
+                    .Select(y => new AcademicYearReadDto {
+                        Id = y.Id,
+                        Name = y.Name,
+                        StartDate = y.StartDate,
+                        EndDate = y.EndDate,
+                        CreatedAt = y.CreatedAt,
+                        UpdatedAt = y.UpdatedAt,
+                        DeletedAt = y.DeletedAt
+                    })
                     .ToListAsync();
+                return Ok(years);
             }
             catch (Exception ex)
             {
-                // Log the exception
                 return StatusCode(StatusCodes.Status500InternalServerError, $"Lỗi truy xuất dữ liệu từ cơ sở dữ liệu: {ex.Message}");
             }
         }
 
         // GET: api/AcademicYears/5
         [HttpGet("{id:int}")]
-        public async Task<ActionResult<AcademicYear>> GetAcademicYear(int id)
+        public async Task<ActionResult<AcademicYearReadDto>> GetAcademicYear(int id)
         {
             try
             {
-                var academicYear = await _context.AcademicYears
-                    .FirstOrDefaultAsync(ay => ay.Id == id && ay.DeletedAt == null);
-
-                if (academicYear == null)
+                var y = await _context.AcademicYears
+                    .Where(ay => ay.Id == id && ay.DeletedAt == null)
+                    .Select(ay => new AcademicYearReadDto {
+                        Id = ay.Id,
+                        Name = ay.Name,
+                        StartDate = ay.StartDate,
+                        EndDate = ay.EndDate,
+                        CreatedAt = ay.CreatedAt,
+                        UpdatedAt = ay.UpdatedAt,
+                        DeletedAt = ay.DeletedAt
+                    })
+                    .FirstOrDefaultAsync();
+                if (y == null)
                 {
                     return NotFound("Không tìm thấy năm học");
                 }
-
-                return academicYear;
+                return Ok(y);
             }
             catch (Exception ex)
             {
@@ -103,31 +126,24 @@ namespace DataManagementApi.Controllers
             {
                  return NotFound("Không tìm thấy năm học");
             }
-
-            // Validation
             if (string.IsNullOrWhiteSpace(academicYearDto.Name))
             {
                 return BadRequest("Tên niên khóa không được để trống");
             }
-
             if (academicYearDto.StartDate >= academicYearDto.EndDate)
             {
                 return BadRequest("Ngày bắt đầu phải trước ngày kết thúc");
             }
-
-            // Check if academic year name already exists (excluding current record)
             var duplicateYear = await _context.AcademicYears
                 .FirstOrDefaultAsync(y => y.Name == academicYearDto.Name && y.Id != id && y.DeletedAt == null);
             if (duplicateYear != null)
             {
                 return BadRequest("Tên niên khóa đã tồn tại");
             }
-
             existingYear.Name = academicYearDto.Name;
             existingYear.StartDate = academicYearDto.StartDate;
             existingYear.EndDate = academicYearDto.EndDate;
             existingYear.UpdatedAt = DateTime.UtcNow;
-
             try
             {
                 await _context.SaveChangesAsync();
@@ -147,39 +163,57 @@ namespace DataManagementApi.Controllers
             {
                  return StatusCode(StatusCodes.Status500InternalServerError, $"Lỗi cập nhật dữ liệu: {ex.Message}");
             }
-
-            return Ok(existingYear);
+            var result = new AcademicYearReadDto {
+                Id = existingYear.Id,
+                Name = existingYear.Name,
+                StartDate = existingYear.StartDate,
+                EndDate = existingYear.EndDate,
+                CreatedAt = existingYear.CreatedAt,
+                UpdatedAt = existingYear.UpdatedAt,
+                DeletedAt = existingYear.DeletedAt
+            };
+            return Ok(result);
         }
 
         // POST: api/AcademicYears
         [HttpPost]
-        public async Task<ActionResult<AcademicYear>> PostAcademicYear(AcademicYear academicYear)
+        public async Task<ActionResult<AcademicYearReadDto>> PostAcademicYear(AcademicYearCreateDto academicYearDto)
         {
             try
             {
-                // Validation
-                if (string.IsNullOrWhiteSpace(academicYear.Name))
+                if (string.IsNullOrWhiteSpace(academicYearDto.Name))
                 {
                     return BadRequest("Tên niên khóa không được để trống");
                 }
-
-                if (academicYear.StartDate >= academicYear.EndDate)
+                if (academicYearDto.StartDate >= academicYearDto.EndDate)
                 {
                     return BadRequest("Ngày bắt đầu phải trước ngày kết thúc");
                 }
-
-                // Check if academic year name already exists
                 var existingYear = await _context.AcademicYears
-                    .FirstOrDefaultAsync(y => y.Name == academicYear.Name && y.DeletedAt == null);
+                    .FirstOrDefaultAsync(y => y.Name == academicYearDto.Name && y.DeletedAt == null);
                 if (existingYear != null)
                 {
                     return BadRequest("Tên niên khóa đã tồn tại");
                 }
-
+                var academicYear = new AcademicYear
+                {
+                    Name = academicYearDto.Name,
+                    StartDate = academicYearDto.StartDate,
+                    EndDate = academicYearDto.EndDate,
+                    CreatedAt = DateTime.UtcNow
+                };
                 _context.AcademicYears.Add(academicYear);
                 await _context.SaveChangesAsync();
-
-                return CreatedAtAction(nameof(GetAcademicYear), new { id = academicYear.Id }, academicYear);
+                var result = new AcademicYearReadDto {
+                    Id = academicYear.Id,
+                    Name = academicYear.Name,
+                    StartDate = academicYear.StartDate,
+                    EndDate = academicYear.EndDate,
+                    CreatedAt = academicYear.CreatedAt,
+                    UpdatedAt = academicYear.UpdatedAt,
+                    DeletedAt = academicYear.DeletedAt
+                };
+                return CreatedAtAction(nameof(GetAcademicYear), new { id = academicYear.Id }, result);
             }
             catch (Exception ex)
             {
@@ -231,6 +265,15 @@ namespace DataManagementApi.Controllers
                     .OrderByDescending(y => y.DeletedAt)
                     .Skip((page - 1) * limit)
                     .Take(limit)
+                    .Select(y => new AcademicYearReadDto {
+                        Id = y.Id,
+                        Name = y.Name,
+                        StartDate = y.StartDate,
+                        EndDate = y.EndDate,
+                        CreatedAt = y.CreatedAt,
+                        UpdatedAt = y.UpdatedAt,
+                        DeletedAt = y.DeletedAt
+                    })
                     .ToListAsync();
 
                 return Ok(new
@@ -342,4 +385,4 @@ namespace DataManagementApi.Controllers
             return _context.AcademicYears.Any(e => e.Id == id && e.DeletedAt == null);
         }
     }
-} 
+}

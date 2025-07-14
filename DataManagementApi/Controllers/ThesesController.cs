@@ -1,5 +1,6 @@
 using DataManagementApi.Data;
 using DataManagementApi.Models;
+using DataManagementApi.Models.Dtos.Thesis;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -28,12 +29,11 @@ namespace DataManagementApi.Controllers
             try
             {
                 var query = _context.Theses
-                    .Where(t => t.DeletedAt == null) // Filter out soft-deleted
+                    .Where(t => t.DeletedAt == null)
                     .Include(t => t.Student)
                     .Include(t => t.Supervisor)
                     .Include(t => t.Examiner)
-                    .Include(t => t.AcademicYear)
-                    .Include(t => t.Semester)
+                    .Include(t => t.ThesisPeriod)
                     .AsQueryable();
 
                 if (!string.IsNullOrWhiteSpace(search))
@@ -47,7 +47,6 @@ namespace DataManagementApi.Controllers
 
                 if (submissionDate.HasValue)
                 {
-                    // Filter by date only (ignore time)
                     var date = submissionDate.Value.Date;
                     query = query.Where(t => t.SubmissionDate.Date == date);
                 }
@@ -57,28 +56,24 @@ namespace DataManagementApi.Controllers
                     .OrderByDescending(t => t.CreatedAt)
                     .Skip((page - 1) * limit)
                     .Take(limit)
-                    .Select(t => new ThesisDto
+                    .Select(t => new ThesisReadDto
                     {
                         Id = t.Id,
                         Title = t.Title,
                         Description = t.Description,
                         StudentId = t.StudentId,
                         StudentName = t.Student != null ? t.Student.FullName : null,
-                        StudentCode = t.Student != null ? t.Student.StudentCode : null,
                         SupervisorId = t.SupervisorId,
                         SupervisorName = t.Supervisor != null ? t.Supervisor.Name : null,
-                        SupervisorEmail = t.Supervisor != null ? t.Supervisor.Email : null,
                         ExaminerId = t.ExaminerId,
                         ExaminerName = t.Examiner != null ? t.Examiner.Name : null,
-                        ExaminerEmail = t.Examiner != null ? t.Examiner.Email : null,
-                        AcademicYearId = t.AcademicYearId,
-                        AcademicYearName = t.AcademicYear != null ? t.AcademicYear.Name : null,
-                        SemesterId = t.SemesterId,
-                        SemesterName = t.Semester != null ? t.Semester.Name : null,
+                        ThesisPeriodId = t.ThesisPeriodId,
+                        ThesisPeriodName = t.ThesisPeriod != null ? t.ThesisPeriod.Name : null,
                         SubmissionDate = t.SubmissionDate,
                         Status = t.Status,
                         CreatedAt = t.CreatedAt,
-                        UpdatedAt = t.UpdatedAt
+                        UpdatedAt = t.UpdatedAt,
+                        DeletedAt = t.DeletedAt
                     })
                     .ToListAsync();
 
@@ -92,40 +87,16 @@ namespace DataManagementApi.Controllers
 
         // GET: api/Theses/5
         [HttpGet("{id}")]
-        public async Task<ActionResult<ThesisDto>> GetThesis(int id)
+        public async Task<ActionResult<ThesisReadDto>> GetThesis(int id)
         {
             try
             {
                 var thesis = await _context.Theses
-                    .Where(t => t.Id == id && t.DeletedAt == null) // Check for soft-delete
+                    .Where(t => t.Id == id && t.DeletedAt == null)
                     .Include(t => t.Student)
                     .Include(t => t.Supervisor)
                     .Include(t => t.Examiner)
-                    .Include(t => t.AcademicYear)
-                    .Include(t => t.Semester)
-                    .Select(t => new ThesisDto
-                    {
-                        Id = t.Id,
-                        Title = t.Title,
-                        Description = t.Description,
-                        StudentId = t.StudentId,
-                        StudentName = t.Student != null ? t.Student.FullName : null,
-                        StudentCode = t.Student != null ? t.Student.StudentCode : null,
-                        SupervisorId = t.SupervisorId,
-                        SupervisorName = t.Supervisor != null ? t.Supervisor.Name : null,
-                        SupervisorEmail = t.Supervisor != null ? t.Supervisor.Email : null,
-                        ExaminerId = t.ExaminerId,
-                        ExaminerName = t.Examiner != null ? t.Examiner.Name : null,
-                        ExaminerEmail = t.Examiner != null ? t.Examiner.Email : null,
-                        AcademicYearId = t.AcademicYearId,
-                        AcademicYearName = t.AcademicYear != null ? t.AcademicYear.Name : null,
-                        SemesterId = t.SemesterId,
-                        SemesterName = t.Semester != null ? t.Semester.Name : null,
-                        SubmissionDate = t.SubmissionDate,
-                        Status = t.Status,
-                        CreatedAt = t.CreatedAt,
-                        UpdatedAt = t.UpdatedAt
-                    })
+                    .Include(t => t.ThesisPeriod)
                     .FirstOrDefaultAsync();
 
                 if (thesis == null)
@@ -133,7 +104,27 @@ namespace DataManagementApi.Controllers
                     return NotFound();
                 }
 
-                return thesis;
+                var dto = new ThesisReadDto
+                {
+                    Id = thesis.Id,
+                    Title = thesis.Title,
+                    Description = thesis.Description,
+                    StudentId = thesis.StudentId,
+                    StudentName = thesis.Student != null ? thesis.Student.FullName : null,
+                    SupervisorId = thesis.SupervisorId,
+                    SupervisorName = thesis.Supervisor != null ? thesis.Supervisor.Name : null,
+                    ExaminerId = thesis.ExaminerId,
+                    ExaminerName = thesis.Examiner != null ? thesis.Examiner.Name : null,
+                    ThesisPeriodId = thesis.ThesisPeriodId,
+                    ThesisPeriodName = thesis.ThesisPeriod != null ? thesis.ThesisPeriod.Name : null,
+                    SubmissionDate = thesis.SubmissionDate,
+                    Status = thesis.Status,
+                    CreatedAt = thesis.CreatedAt,
+                    UpdatedAt = thesis.UpdatedAt,
+                    DeletedAt = thesis.DeletedAt
+                };
+
+                return Ok(dto);
             }
             catch (Exception)
             {
@@ -143,7 +134,7 @@ namespace DataManagementApi.Controllers
 
         // PUT: api/Theses/5
         [HttpPut("{id}")]
-        public async Task<IActionResult> PutThesis(int id, CreateThesisDto thesisDto)
+        public async Task<IActionResult> PutThesis(int id, ThesisUpdateDto thesisDto)
         {
             try
             {
@@ -153,7 +144,6 @@ namespace DataManagementApi.Controllers
                     return NotFound();
                 }
 
-                // Validate that referenced entities exist
                 var student = await _context.Students.FindAsync(thesisDto.StudentId);
                 if (student == null)
                 {
@@ -166,42 +156,67 @@ namespace DataManagementApi.Controllers
                     return BadRequest("Giảng viên hướng dẫn không tồn tại");
                 }
 
+                Lecturer? examiner = null;
                 if (thesisDto.ExaminerId.HasValue)
                 {
-                    var examiner = await _context.Lecturers.FindAsync(thesisDto.ExaminerId.Value);
+                    examiner = await _context.Lecturers.FindAsync(thesisDto.ExaminerId.Value);
                     if (examiner == null)
                     {
                         return BadRequest("Giảng viên phản biện không tồn tại");
                     }
                 }
 
-                var academicYear = await _context.AcademicYears.FindAsync(thesisDto.AcademicYearId);
-                if (academicYear == null)
+                var thesisPeriod = await _context.ThesisPeriods.FindAsync(thesisDto.ThesisPeriodId);
+                if (thesisPeriod == null)
                 {
-                    return BadRequest("Năm học không tồn tại");
+                    return BadRequest("Đợt khóa luận không tồn tại");
                 }
 
-                var semester = await _context.Semesters.FindAsync(thesisDto.SemesterId);
-                if (semester == null)
-                {
-                    return BadRequest("Học kỳ không tồn tại");
-                }
-
-                // Update the thesis entity
                 existingThesis.Title = thesisDto.Title;
                 existingThesis.Description = thesisDto.Description;
                 existingThesis.StudentId = thesisDto.StudentId;
                 existingThesis.SupervisorId = thesisDto.SupervisorId;
                 existingThesis.ExaminerId = thesisDto.ExaminerId;
-                existingThesis.AcademicYearId = thesisDto.AcademicYearId;
-                existingThesis.SemesterId = thesisDto.SemesterId;
+                existingThesis.ThesisPeriodId = thesisDto.ThesisPeriodId;
                 existingThesis.SubmissionDate = thesisDto.SubmissionDate;
                 existingThesis.Status = thesisDto.Status;
                 existingThesis.UpdatedAt = DateTime.UtcNow;
 
                 await _context.SaveChangesAsync();
 
-                return NoContent();
+                var updatedThesis = await _context.Theses
+                    .Where(t => t.Id == id)
+                    .Include(t => t.Student)
+                    .Include(t => t.Supervisor)
+                    .Include(t => t.Examiner)
+                    .Include(t => t.ThesisPeriod)
+                    .Select(t => new ThesisReadDto
+                    {
+                        Id = t.Id,
+                        Title = t.Title,
+                        Description = t.Description,
+                        StudentId = t.StudentId,
+                        StudentName = t.Student != null ? t.Student.FullName : null,
+                        SupervisorId = t.SupervisorId,
+                        SupervisorName = t.Supervisor != null ? t.Supervisor.Name : null,
+                        ExaminerId = t.ExaminerId,
+                        ExaminerName = t.Examiner != null ? t.Examiner.Name : null,
+                        ThesisPeriodId = t.ThesisPeriodId,
+                        ThesisPeriodName = t.ThesisPeriod != null ? t.ThesisPeriod.Name : null,
+                        SubmissionDate = t.SubmissionDate,
+                        Status = t.Status,
+                        CreatedAt = t.CreatedAt,
+                        UpdatedAt = t.UpdatedAt,
+                        DeletedAt = t.DeletedAt
+                    })
+                    .FirstOrDefaultAsync();
+
+                if (updatedThesis == null)
+                {
+                    return StatusCode(StatusCodes.Status500InternalServerError, "Lỗi cập nhật dữ liệu");
+                }
+
+                return Ok(updatedThesis);
             }
             catch (Exception)
             {
@@ -211,11 +226,10 @@ namespace DataManagementApi.Controllers
 
         // POST: api/Theses
         [HttpPost]
-        public async Task<ActionResult<ThesisDto>> PostThesis(CreateThesisDto thesisDto)
+        public async Task<ActionResult<ThesisReadDto>> PostThesis(ThesisCreateDto thesisDto)
         {
             try
             {
-                // Validate that referenced entities exist
                 var student = await _context.Students.FindAsync(thesisDto.StudentId);
                 if (student == null)
                 {
@@ -228,28 +242,22 @@ namespace DataManagementApi.Controllers
                     return BadRequest("Giảng viên hướng dẫn không tồn tại");
                 }
 
+                Lecturer? examiner = null;
                 if (thesisDto.ExaminerId.HasValue)
                 {
-                    var examiner = await _context.Lecturers.FindAsync(thesisDto.ExaminerId.Value);
+                    examiner = await _context.Lecturers.FindAsync(thesisDto.ExaminerId.Value);
                     if (examiner == null)
                     {
                         return BadRequest("Giảng viên phản biện không tồn tại");
                     }
                 }
 
-                var academicYear = await _context.AcademicYears.FindAsync(thesisDto.AcademicYearId);
-                if (academicYear == null)
+                var thesisPeriod = await _context.ThesisPeriods.FindAsync(thesisDto.ThesisPeriodId);
+                if (thesisPeriod == null)
                 {
-                    return BadRequest("Năm học không tồn tại");
+                    return BadRequest("Đợt khóa luận không tồn tại");
                 }
 
-                var semester = await _context.Semesters.FindAsync(thesisDto.SemesterId);
-                if (semester == null)
-                {
-                    return BadRequest("Học kỳ không tồn tại");
-                }
-
-                // Create the thesis entity
                 var thesis = new Thesis
                 {
                     Title = thesisDto.Title,
@@ -257,49 +265,48 @@ namespace DataManagementApi.Controllers
                     StudentId = thesisDto.StudentId,
                     SupervisorId = thesisDto.SupervisorId,
                     ExaminerId = thesisDto.ExaminerId,
-                    AcademicYearId = thesisDto.AcademicYearId,
-                    SemesterId = thesisDto.SemesterId,
+                    ThesisPeriodId = thesisDto.ThesisPeriodId,
                     SubmissionDate = thesisDto.SubmissionDate,
-                    Status = thesisDto.Status ?? "Draft",
+                    Status = thesisDto.Status,
                     CreatedAt = DateTime.UtcNow,
-                    UpdatedAt = DateTime.UtcNow
+                    UpdatedAt = DateTime.UtcNow,
+                    DeletedAt = null
                 };
 
                 _context.Theses.Add(thesis);
                 await _context.SaveChangesAsync();
 
-                // Load the full thesis with related entities for the response
                 var createdThesis = await _context.Theses
+                    .Where(t => t.Id == thesis.Id)
                     .Include(t => t.Student)
                     .Include(t => t.Supervisor)
                     .Include(t => t.Examiner)
-                    .Include(t => t.AcademicYear)
-                    .Include(t => t.Semester)
-                    .Where(t => t.Id == thesis.Id)
-                    .Select(t => new ThesisDto
+                    .Include(t => t.ThesisPeriod)
+                    .Select(t => new ThesisReadDto
                     {
                         Id = t.Id,
                         Title = t.Title,
                         Description = t.Description,
                         StudentId = t.StudentId,
                         StudentName = t.Student != null ? t.Student.FullName : null,
-                        StudentCode = t.Student != null ? t.Student.StudentCode : null,
                         SupervisorId = t.SupervisorId,
                         SupervisorName = t.Supervisor != null ? t.Supervisor.Name : null,
-                        SupervisorEmail = t.Supervisor != null ? t.Supervisor.Email : null,
                         ExaminerId = t.ExaminerId,
                         ExaminerName = t.Examiner != null ? t.Examiner.Name : null,
-                        ExaminerEmail = t.Examiner != null ? t.Examiner.Email : null,
-                        AcademicYearId = t.AcademicYearId,
-                        AcademicYearName = t.AcademicYear != null ? t.AcademicYear.Name : null,
-                        SemesterId = t.SemesterId,
-                        SemesterName = t.Semester != null ? t.Semester.Name : null,
+                        ThesisPeriodId = t.ThesisPeriodId,
+                        ThesisPeriodName = t.ThesisPeriod != null ? t.ThesisPeriod.Name : null,
                         SubmissionDate = t.SubmissionDate,
                         Status = t.Status,
                         CreatedAt = t.CreatedAt,
-                        UpdatedAt = t.UpdatedAt
+                        UpdatedAt = t.UpdatedAt,
+                        DeletedAt = t.DeletedAt
                     })
                     .FirstOrDefaultAsync();
+
+                if (createdThesis == null)
+                {
+                    return StatusCode(StatusCodes.Status500InternalServerError, "Lỗi khi tạo mới khóa luận");
+                }
 
                 return CreatedAtAction(nameof(GetThesis), new { id = thesis.Id }, createdThesis);
             }
@@ -378,11 +385,13 @@ namespace DataManagementApi.Controllers
         {
             try
             {
-                IQueryable<Thesis> query = _context.Theses
+                var query = _context.Theses
                     .Where(t => t.DeletedAt != null)
                     .Include(t => t.Student)
-                    .Include(t => t.Supervisor);
-
+                    .Include(t => t.Supervisor)
+                    .Include(t => t.Examiner)
+                    .Include(t => t.ThesisPeriod)
+                    .AsQueryable();
                 if (!string.IsNullOrWhiteSpace(search))
                 {
                      query = query.Where(t =>
@@ -390,22 +399,30 @@ namespace DataManagementApi.Controllers
                         (t.Student != null && t.Student.FullName.Contains(search))
                     );
                 }
-
                 var total = await query.CountAsync();
                 var theses = await query
                     .OrderByDescending(t => t.DeletedAt)
                     .Skip((page - 1) * limit)
                     .Take(limit)
-                    .Select(t => new ThesisDto {
+                    .Select(t => new ThesisReadDto {
                         Id = t.Id,
                         Title = t.Title,
+                        Description = t.Description,
+                        StudentId = t.StudentId,
                         StudentName = t.Student != null ? t.Student.FullName : null,
+                        SupervisorId = t.SupervisorId,
                         SupervisorName = t.Supervisor != null ? t.Supervisor.Name : null,
+                        ExaminerId = t.ExaminerId,
+                        ExaminerName = t.Examiner != null ? t.Examiner.Name : null,
+                        ThesisPeriodId = t.ThesisPeriodId,
+                        ThesisPeriodName = t.ThesisPeriod != null ? t.ThesisPeriod.Name : null,
+                        SubmissionDate = t.SubmissionDate,
                         Status = t.Status,
+                        CreatedAt = t.CreatedAt,
+                        UpdatedAt = t.UpdatedAt,
                         DeletedAt = t.DeletedAt
                     })
                     .ToListAsync();
-
                 return Ok(new { data = theses, total });
             }
             catch (Exception)

@@ -1,5 +1,6 @@
 using DataManagementApi.Data;
 using DataManagementApi.Models;
+using DataManagementApi.Models.Dtos.Lecturer;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -42,10 +43,28 @@ namespace DataManagementApi.Controllers
                     .Take(limit)
                     .ToListAsync();
 
+                var lecturerDtos = lecturers.Select(l => new LecturerReadDto
+                {
+                    Id = l.Id,
+                    Name = l.Name,
+                    Email = l.Email,
+                    PhoneNumber = l.PhoneNumber,
+                    DepartmentId = l.DepartmentId,
+                    DepartmentName = l.Department?.Name,
+                    AcademicRank = l.AcademicRank,
+                    Degree = l.Degree,
+                    Specialization = l.Specialization,
+                    AvatarUrl = l.AvatarUrl,
+                    IsActive = l.IsActive,
+                    CreatedAt = l.CreatedAt,
+                    UpdatedAt = l.UpdatedAt,
+                    DeletedAt = l.DeletedAt
+                }).ToList();
+
                 // Return paginated response format
                 return Ok(new
                 {
-                    data = lecturers,
+                    data = lecturerDtos,
                     total = totalCount,
                     page = page,
                     limit = limit
@@ -60,14 +79,32 @@ namespace DataManagementApi.Controllers
 
         // GET: api/Lecturers/all
         [HttpGet("all")]
-        public async Task<ActionResult<IEnumerable<Lecturer>>> GetAllLecturers()
+        public async Task<ActionResult<IEnumerable<LecturerReadDto>>> GetAllLecturers()
         {
             try
             {
-                return await _context.Lecturers
+                var lecturers = await _context.Lecturers
                     .Where(d => d.DeletedAt == null)
                     .OrderBy(d => d.Name)
                     .ToListAsync();
+                var lecturerDtos = lecturers.Select(l => new LecturerReadDto
+                {
+                    Id = l.Id,
+                    Name = l.Name,
+                    Email = l.Email,
+                    PhoneNumber = l.PhoneNumber,
+                    DepartmentId = l.DepartmentId,
+                    DepartmentName = l.Department?.Name,
+                    AcademicRank = l.AcademicRank,
+                    Degree = l.Degree,
+                    Specialization = l.Specialization,
+                    AvatarUrl = l.AvatarUrl,
+                    IsActive = l.IsActive,
+                    CreatedAt = l.CreatedAt,
+                    UpdatedAt = l.UpdatedAt,
+                    DeletedAt = l.DeletedAt
+                }).ToList();
+                return lecturerDtos;
             }
             catch (Exception)
             {
@@ -77,7 +114,7 @@ namespace DataManagementApi.Controllers
         
         // GET: api/Lecturers/5
         [HttpGet("{id:int}")]
-        public async Task<ActionResult<Lecturer>> GetLecturer(int id)
+        public async Task<ActionResult<LecturerReadDto>> GetLecturer(int id)
         {
             try
             {
@@ -90,7 +127,25 @@ namespace DataManagementApi.Controllers
                     return NotFound();
                 }
 
-                return lecturer;
+                var lecturerDto = new LecturerReadDto
+                {
+                    Id = lecturer.Id,
+                    Name = lecturer.Name,
+                    Email = lecturer.Email,
+                    PhoneNumber = lecturer.PhoneNumber,
+                    DepartmentId = lecturer.DepartmentId,
+                    DepartmentName = lecturer.Department?.Name,
+                    AcademicRank = lecturer.AcademicRank,
+                    Degree = lecturer.Degree,
+                    Specialization = lecturer.Specialization,
+                    AvatarUrl = lecturer.AvatarUrl,
+                    IsActive = lecturer.IsActive,
+                    CreatedAt = lecturer.CreatedAt,
+                    UpdatedAt = lecturer.UpdatedAt,
+                    DeletedAt = lecturer.DeletedAt
+                };
+
+                return lecturerDto;
             }
             catch (Exception)
             {
@@ -112,7 +167,6 @@ namespace DataManagementApi.Controllers
             {
                 return BadRequest(new { message = "Email already exists" });
             }
-            
             existingLecturer.Name = lecturerDto.Name;
             existingLecturer.Email = lecturerDto.Email;
             existingLecturer.PhoneNumber = lecturerDto.PhoneNumber;
@@ -123,8 +177,6 @@ namespace DataManagementApi.Controllers
             existingLecturer.AvatarUrl = lecturerDto.AvatarUrl;
             existingLecturer.IsActive = lecturerDto.IsActive;
             existingLecturer.UpdatedAt = DateTime.UtcNow;
-
-
             try
             {
                 await _context.SaveChangesAsync();
@@ -144,27 +196,70 @@ namespace DataManagementApi.Controllers
             {
                 return StatusCode(StatusCodes.Status500InternalServerError, $"Lỗi cập nhật dữ liệu: {ex.Message}");
             }
-
             var updatedLecturer = await _context.Lecturers.Include(l => l.Department).FirstOrDefaultAsync(l => l.Id == id);
-            return Ok(updatedLecturer);
+            var updatedLecturerDto = new LecturerReadDto
+            {
+                Id = updatedLecturer.Id,
+                Name = updatedLecturer.Name,
+                Email = updatedLecturer.Email,
+                PhoneNumber = updatedLecturer.PhoneNumber,
+                DepartmentId = updatedLecturer.DepartmentId,
+                DepartmentName = updatedLecturer.Department?.Name,
+                AcademicRank = updatedLecturer.AcademicRank,
+                Degree = updatedLecturer.Degree,
+                Specialization = updatedLecturer.Specialization,
+                AvatarUrl = updatedLecturer.AvatarUrl,
+                IsActive = updatedLecturer.IsActive,
+                CreatedAt = updatedLecturer.CreatedAt,
+                UpdatedAt = updatedLecturer.UpdatedAt,
+                DeletedAt = updatedLecturer.DeletedAt
+            };
+            return Ok(updatedLecturerDto);
         }
 
         // POST: api/Lecturers
         [HttpPost]
-        public async Task<ActionResult<Lecturer>> PostLecturer(Lecturer lecturer)
+        public async Task<ActionResult<LecturerReadDto>> PostLecturer(LecturerCreateDto lecturerDto)
         {
             try
             {
-                if (await _context.Lecturers.AnyAsync(l => l.Email == lecturer.Email))
+                if (await _context.Lecturers.AnyAsync(l => l.Email == lecturerDto.Email))
                 {
                     return BadRequest("Email đã tồn tại.");
                 }
-
-                lecturer.CreatedAt = DateTime.UtcNow;
+                var lecturer = new Lecturer
+                {
+                    Name = lecturerDto.Name,
+                    Email = lecturerDto.Email,
+                    PhoneNumber = lecturerDto.PhoneNumber,
+                    DepartmentId = lecturerDto.DepartmentId,
+                    AcademicRank = lecturerDto.AcademicRank,
+                    Degree = lecturerDto.Degree,
+                    Specialization = lecturerDto.Specialization,
+                    AvatarUrl = lecturerDto.AvatarUrl,
+                    IsActive = lecturerDto.IsActive,
+                    CreatedAt = DateTime.UtcNow
+                };
                 _context.Lecturers.Add(lecturer);
                 await _context.SaveChangesAsync();
-
-                return CreatedAtAction(nameof(GetLecturer), new { id = lecturer.Id }, lecturer);
+                var lecturerReadDto = new LecturerReadDto
+                {
+                    Id = lecturer.Id,
+                    Name = lecturer.Name,
+                    Email = lecturer.Email,
+                    PhoneNumber = lecturer.PhoneNumber,
+                    DepartmentId = lecturer.DepartmentId,
+                    DepartmentName = lecturer.Department?.Name,
+                    AcademicRank = lecturer.AcademicRank,
+                    Degree = lecturer.Degree,
+                    Specialization = lecturer.Specialization,
+                    AvatarUrl = lecturer.AvatarUrl,
+                    IsActive = lecturer.IsActive,
+                    CreatedAt = lecturer.CreatedAt,
+                    UpdatedAt = lecturer.UpdatedAt,
+                    DeletedAt = lecturer.DeletedAt
+                };
+                return CreatedAtAction(nameof(GetLecturer), new { id = lecturer.Id }, lecturerReadDto);
             }
             catch (Exception ex)
             {
@@ -296,27 +391,36 @@ namespace DataManagementApi.Controllers
                 var query = _context.Lecturers
                     .Include(l => l.Department)
                     .Where(d => d.DeletedAt != null);
-
-                // Apply search filter
                 if (!string.IsNullOrEmpty(search))
                 {
                     query = query.Where(l => l.Name.Contains(search) || l.Email.Contains(search) || (l.Specialization != null && l.Specialization.Contains(search)));
                 }
-
-                // Get total count for pagination
                 var totalCount = await query.CountAsync();
-
-                // Apply pagination
                 var lecturers = await query
                     .OrderBy(d => d.Name)
                     .Skip((page - 1) * limit)
                     .Take(limit)
                     .ToListAsync();
-
-                // Return paginated response format
+                var lecturerDtos = lecturers.Select(l => new LecturerReadDto
+                {
+                    Id = l.Id,
+                    Name = l.Name,
+                    Email = l.Email,
+                    PhoneNumber = l.PhoneNumber,
+                    DepartmentId = l.DepartmentId,
+                    DepartmentName = l.Department?.Name,
+                    AcademicRank = l.AcademicRank,
+                    Degree = l.Degree,
+                    Specialization = l.Specialization,
+                    AvatarUrl = l.AvatarUrl,
+                    IsActive = l.IsActive,
+                    CreatedAt = l.CreatedAt,
+                    UpdatedAt = l.UpdatedAt,
+                    DeletedAt = l.DeletedAt
+                }).ToList();
                 return Ok(new
                 {
-                    data = lecturers,
+                    data = lecturerDtos,
                     total = totalCount,
                     page = page,
                     limit = limit

@@ -1,5 +1,6 @@
 using DataManagementApi.Data;
 using DataManagementApi.Models;
+using DataManagementApi.Models.Dtos.Partner;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -21,36 +22,55 @@ namespace DataManagementApi.Controllers
         public async Task<ActionResult<object>> GetPartners([FromQuery] int page = 1, [FromQuery] int limit = 10, [FromQuery] string search = "")
         {
             var query = _context.Partners.Where(p => p.DeletedAt == null);
-
             if (!string.IsNullOrEmpty(search))
             {
                 query = query.Where(p => p.Name.Contains(search) || p.Email.Contains(search) || p.PhoneNumber.Contains(search));
             }
-
             var total = await query.CountAsync();
             var partners = await query
                 .OrderBy(p => p.Name)
                 .Skip((page - 1) * limit)
                 .Take(limit)
+                .Select(p => new PartnerReadDto {
+                    Id = p.Id,
+                    Name = p.Name,
+                    Description = p.Description,
+                    Address = p.Address,
+                    Website = p.Website,
+                    PhoneNumber = p.PhoneNumber,
+                    ContactPerson = p.ContactPerson,
+                    Email = p.Email,
+                    IsActive = p.IsActive,
+                    DeletedAt = p.DeletedAt,
+                    CreatedAt = DateTime.UtcNow,
+                    // Các trường mở rộng nếu có
+                })
                 .ToListAsync();
-
             return Ok(new { data = partners, total, page, limit });
         }
 
         // GET: api/Partners/5
         [HttpGet("{id}")]
-        public async Task<ActionResult<Partner>> GetPartner(int id)
+        public async Task<ActionResult<PartnerReadDto>> GetPartner(int id)
         {
-            var partner = await _context.Partners.FirstOrDefaultAsync(p => p.Id == id && p.DeletedAt == null);
-
-            if (partner == null)
-            {
-                return NotFound();
-            }
-
-            return partner;
+            var p = await _context.Partners.FirstOrDefaultAsync(x => x.Id == id && x.DeletedAt == null);
+            if (p == null) return NotFound();
+            var dto = new PartnerReadDto {
+                Id = p.Id,
+                Name = p.Name,
+                Description = p.Description,
+                Address = p.Address,
+                Website = p.Website,
+                PhoneNumber = p.PhoneNumber,
+                ContactPerson = p.ContactPerson,
+                Email = p.Email,
+                IsActive = p.IsActive,
+                DeletedAt = p.DeletedAt,
+                CreatedAt = DateTime.UtcNow,
+            };
+            return Ok(dto);
         }
-        
+
         // GET: api/Partners/deleted
         [HttpGet("deleted")]
         public async Task<ActionResult<object>> GetDeletedPartners([FromQuery] int page = 1, [FromQuery] int limit = 10, [FromQuery] string search = "")
@@ -77,13 +97,10 @@ namespace DataManagementApi.Controllers
         public async Task<IActionResult> PutPartner(int id, PartnerUpdateDto partnerDto)
         {
             var existingPartner = await _context.Partners.FirstOrDefaultAsync(p => p.Id == id);
-            
             if (existingPartner == null || existingPartner.DeletedAt != null)
             {
                 return NotFound("Đối tác không tồn tại hoặc đã bị xóa.");
             }
-
-            // Manually update the properties
             existingPartner.Name = partnerDto.Name;
             existingPartner.Email = partnerDto.Email;
             existingPartner.PhoneNumber = partnerDto.PhoneNumber;
@@ -92,7 +109,6 @@ namespace DataManagementApi.Controllers
             existingPartner.Description = partnerDto.Description;
             existingPartner.ContactPerson = partnerDto.ContactPerson;
             existingPartner.IsActive = partnerDto.IsActive;
-
             try
             {
                 await _context.SaveChangesAsync();
@@ -108,19 +124,53 @@ namespace DataManagementApi.Controllers
                     throw;
                 }
             }
-
-            return NoContent();
+            var dto = new PartnerReadDto {
+                Id = existingPartner.Id,
+                Name = existingPartner.Name,
+                Description = existingPartner.Description,
+                Address = existingPartner.Address,
+                Website = existingPartner.Website,
+                PhoneNumber = existingPartner.PhoneNumber,
+                ContactPerson = existingPartner.ContactPerson,
+                Email = existingPartner.Email,
+                IsActive = existingPartner.IsActive,
+                DeletedAt = existingPartner.DeletedAt,
+                CreatedAt = DateTime.UtcNow,
+            };
+            return Ok(dto);
         }
 
         // POST: api/Partners
         [HttpPost]
-        public async Task<ActionResult<Partner>> PostPartner(Partner partner)
+        public async Task<ActionResult<PartnerReadDto>> PostPartner(PartnerCreateDto partnerDto)
         {
-            partner.DeletedAt = null;
+            var partner = new Partner {
+                Name = partnerDto.Name,
+                Description = partnerDto.Description,
+                Address = partnerDto.Address,
+                Website = partnerDto.Website,
+                PhoneNumber = partnerDto.PhoneNumber,
+                ContactPerson = partnerDto.ContactPerson,
+                Email = partnerDto.Email,
+                IsActive = partnerDto.IsActive,
+                DeletedAt = null
+            };
             _context.Partners.Add(partner);
             await _context.SaveChangesAsync();
-
-            return CreatedAtAction(nameof(GetPartner), new { id = partner.Id }, partner);
+            var dto = new PartnerReadDto {
+                Id = partner.Id,
+                Name = partner.Name,
+                Description = partner.Description,
+                Address = partner.Address,
+                Website = partner.Website,
+                PhoneNumber = partner.PhoneNumber,
+                ContactPerson = partner.ContactPerson,
+                Email = partner.Email,
+                IsActive = partner.IsActive,
+                DeletedAt = partner.DeletedAt,
+                CreatedAt = DateTime.UtcNow,
+            };
+            return CreatedAtAction(nameof(GetPartner), new { id = partner.Id }, dto);
         }
 
         // SOFT DELETE: api/Partners/soft-delete/5
@@ -188,4 +238,4 @@ namespace DataManagementApi.Controllers
             return _context.Partners.Any(e => e.Id == id && e.DeletedAt == null);
         }
     }
-} 
+}

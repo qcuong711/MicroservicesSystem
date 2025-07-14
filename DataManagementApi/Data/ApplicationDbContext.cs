@@ -16,6 +16,8 @@ namespace DataManagementApi.Data
         public DbSet<Department> Departments { get; set; }
         public DbSet<Thesis> Theses { get; set; }
         public DbSet<Lecturer> Lecturers { get; set; }
+        public DbSet<InternshipPeriod> InternshipPeriods { get; set; }
+        public DbSet<ThesisPeriod> ThesisPeriods { get; set; }
         
         // --- Models cho User, Role, Permission ---
         public DbSet<Role> Roles { get; set; }
@@ -90,29 +92,42 @@ namespace DataManagementApi.Data
                 .WithMany(m => m.RoleMenus)
                 .HasForeignKey(rm => rm.MenuId);
 
-            // --- Cấu hình cho Internship và Thesis để tránh lỗi Multiple Cascade Paths ---
-            modelBuilder.Entity<Internship>()
-                .HasOne(i => i.AcademicYear)
-                .WithMany() // Không có collection tương ứng trong AcademicYear
-                .HasForeignKey(i => i.AcademicYearId)
+            // Cấu hình cho InternshipPeriod và ThesisPeriod
+            modelBuilder.Entity<InternshipPeriod>()
+                .HasOne(p => p.AcademicYear)
+                .WithMany()
+                .HasForeignKey(p => p.AcademicYearId)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            modelBuilder.Entity<Internship>()
-                .HasOne(i => i.Semester)
-                .WithMany() // Không có collection tương ứng trong Semester
-                .HasForeignKey(i => i.SemesterId)
+            modelBuilder.Entity<InternshipPeriod>()
+                .HasOne(p => p.Semester)
+                .WithMany()
+                .HasForeignKey(p => p.SemesterId)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            modelBuilder.Entity<Thesis>()
-                .HasOne(t => t.AcademicYear)
-                .WithMany() // Không có collection tương ứng trong AcademicYear
-                .HasForeignKey(t => t.AcademicYearId)
+            modelBuilder.Entity<ThesisPeriod>()
+                .HasOne(p => p.AcademicYear)
+                .WithMany()
+                .HasForeignKey(p => p.AcademicYearId)
                 .OnDelete(DeleteBehavior.Restrict);
             
+            modelBuilder.Entity<ThesisPeriod>()
+                .HasOne(p => p.Semester)
+                .WithMany()
+                .HasForeignKey(p => p.SemesterId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // --- Cấu hình cho Internship và Thesis để tránh lỗi Multiple Cascade Paths ---
+            modelBuilder.Entity<Internship>()
+                .HasOne(i => i.InternshipPeriod)
+                .WithMany(p => p.Internships) 
+                .HasForeignKey(i => i.InternshipPeriodId)
+                .OnDelete(DeleteBehavior.Restrict);
+
             modelBuilder.Entity<Thesis>()
-                .HasOne(t => t.Semester)
-                .WithMany() // Không có collection tương ứng trong Semester
-                .HasForeignKey(t => t.SemesterId)
+                .HasOne(t => t.ThesisPeriod)
+                .WithMany(p => p.Theses) 
+                .HasForeignKey(t => t.ThesisPeriodId)
                 .OnDelete(DeleteBehavior.Restrict);
 
             // Configure Internship to use User instead of Student
