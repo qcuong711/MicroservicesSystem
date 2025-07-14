@@ -13,12 +13,13 @@ namespace DataManagementApi.Models
         [StringLength(100)]
         public string Name { get; set; } = string.Empty;
         public string? Description { get; set; }
+        public bool? IsActive { get; set; } = true;
         // Quan hệ N-N với ThesisPeriod
         public ICollection<ThesisPeriod>? ThesisPeriods { get; set; }
         // Navigation property for N-N with ThesisPeriod
-        public ICollection<ThesisPeriodBusiness>? ThesisPeriodBusinesses { get; set; }
+        public ICollection<ThesisPeriodBusiness>? ThesisPeriodBusiness { get; set; }
         // Navigation property for N-N with Partner
-        public ICollection<PartnerBusiness>? PartnerBusinesses { get; set; }
+        public ICollection<PartnerBusiness>? PartnerBusiness { get; set; }
         public ICollection<Partner>? Partners { get; set; } // Navigation property for related Partners
         // Navigation property for related Thesis (if direct link needed)
         public ICollection<Thesis>? Theses { get; set; }
