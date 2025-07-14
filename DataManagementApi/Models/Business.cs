@@ -15,9 +15,13 @@ namespace DataManagementApi.Models
         public string? Description { get; set; }
         // Quan hệ N-N với ThesisPeriod
         public ICollection<ThesisPeriod>? ThesisPeriods { get; set; }
-        public ICollection<ThesisPeriodBusiness>? ThesisPeriodBusiness { get; set; }
-        public ICollection<PartnerBusiness>? PartnerBusiness { get; set; }
+        // Navigation property for N-N with ThesisPeriod
+        public ICollection<ThesisPeriodBusiness>? ThesisPeriodBusinesses { get; set; }
+        // Navigation property for N-N with Partner
+        public ICollection<PartnerBusiness>? PartnerBusinesses { get; set; }
         public ICollection<Partner>? Partners { get; set; } // Navigation property for related Partners
+        // Navigation property for related Thesis (if direct link needed)
+        public ICollection<Thesis>? Theses { get; set; }
         // Trường thứ tự hiển thị
         public int DisplayOrder { get; set; } = 0;
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;

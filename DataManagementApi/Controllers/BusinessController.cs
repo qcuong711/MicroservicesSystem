@@ -6,27 +6,27 @@ using Microsoft.EntityFrameworkCore;
 
 namespace DataManagementApi.Controllers
 {
-    [Route("api/business-fields")]
+    [Route("api/business")]
     [ApiController]
-    public class BusinessFieldsController : ControllerBase
+    public class BusinessController : ControllerBase
     {
         private readonly ApplicationDbContext _context;
-        public BusinessFieldsController(ApplicationDbContext context)
+        public BusinessController(ApplicationDbContext context)
         {
             _context = context;
         }
 
-        // GET: api/business-fields
+        // GET: api/business-
         [HttpGet]
-        public async Task<ActionResult<object>> GetBusinessFields([FromQuery] int page = 1, [FromQuery] int limit = 10, [FromQuery] string search = "")
+        public async Task<ActionResult<object>> GetBusiness([FromQuery] int page = 1, [FromQuery] int limit = 10, [FromQuery] string search = "")
         {
-            var query = _context.BusinessFields.Where(bf => bf.DeletedAt == null);
+            var query = _context.Business.Where(bf => bf.DeletedAt == null);
             if (!string.IsNullOrEmpty(search))
             {
                 query = query.Where(bf => bf.Name.Contains(search));
             }
             var total = await query.CountAsync();
-            var fields = await query.OrderBy(bf => bf.DisplayOrder).ThenBy(bf => bf.Name)
+            var business = await query.OrderBy(bf => bf.DisplayOrder).ThenBy(bf => bf.Name)
                 .Skip((page - 1) * limit).Take(limit)
                 .Select(bf => new BusinessFieldReadDto
                 {
@@ -38,14 +38,14 @@ namespace DataManagementApi.Controllers
                     UpdatedAt = bf.UpdatedAt,
                     DeletedAt = bf.DeletedAt
                 }).ToListAsync();
-            return Ok(new { data = fields, total, page, limit });
+            return Ok(new { data = business, total, page, limit });
         }
 
-        // GET: api/business-fields/all
+        // GET: api/business-/all
         [HttpGet("all")]
-        public async Task<ActionResult<IEnumerable<BusinessFieldReadDto>>> GetAllBusinessFields()
+        public async Task<ActionResult<IEnumerable<BusinessFieldReadDto>>> GetAllBusiness()
         {
-            var fields = await _context.BusinessFields.Where(bf => bf.DeletedAt == null)
+            var business = await _context.Business.Where(bf => bf.DeletedAt == null)
                 .OrderBy(bf => bf.DisplayOrder).ThenBy(bf => bf.Name)
                 .Select(bf => new BusinessFieldReadDto
                 {
@@ -57,14 +57,14 @@ namespace DataManagementApi.Controllers
                     UpdatedAt = bf.UpdatedAt,
                     DeletedAt = bf.DeletedAt
                 }).ToListAsync();
-            return Ok(fields);
+            return Ok();
         }
 
-        // GET: api/business-fields/{id}
+        // GET: api/business-/{id}
         [HttpGet("{id:int}")]
         public async Task<ActionResult<BusinessFieldReadDto>> GetBusinessField(int id)
         {
-            var bf = await _context.BusinessFields.FirstOrDefaultAsync(b => b.Id == id && b.DeletedAt == null);
+            var bf = await _context.Business.FirstOrDefaultAsync(b => b.Id == id && b.DeletedAt == null);
             if (bf == null) return NotFound();
             var dto = new BusinessFieldReadDto
             {
@@ -79,17 +79,17 @@ namespace DataManagementApi.Controllers
             return Ok(dto);
         }
 
-        // POST: api/business-fields
+        // POST: api/business-
         [HttpPost]
         public async Task<ActionResult<BusinessFieldReadDto>> PostBusinessField(BusinessFieldCreateDto dto)
         {
-            var bf = new BusinessField
+            var bf = new Business
             {
                 Name = dto.Name,
                 Description = dto.Description,
                 DisplayOrder = dto.DisplayOrder
             };
-            _context.BusinessFields.Add(bf);
+            _context.Business.Add(bf);
             await _context.SaveChangesAsync();
             var result = new BusinessFieldReadDto
             {
@@ -104,11 +104,11 @@ namespace DataManagementApi.Controllers
             return CreatedAtAction(nameof(GetBusinessField), new { id = bf.Id }, result);
         }
 
-        // PUT: api/business-fields/{id}
+        // PUT: api/business-/{id}
         [HttpPut("{id}")]
         public async Task<IActionResult> PutBusinessField(int id, BusinessFieldUpdateDto dto)
         {
-            var bf = await _context.BusinessFields.FindAsync(id);
+            var bf = await _context.Business.FindAsync(id);
             if (bf == null || bf.DeletedAt != null) return NotFound();
             bf.Name = dto.Name;
             bf.Description = dto.Description;
@@ -118,11 +118,11 @@ namespace DataManagementApi.Controllers
             return NoContent();
         }
 
-        // SOFT DELETE: api/business-fields/soft-delete/{id}
+        // SOFT DELETE: api/business-/soft-delete/{id}
         [HttpPost("soft-delete/{id}")]
         public async Task<IActionResult> SoftDeleteBusinessField(int id)
         {
-            var bf = await _context.BusinessFields.FindAsync(id);
+            var bf = await _context.Business.FindAsync(id);
             if (bf == null) return NotFound();
             if (bf.DeletedAt != null) return BadRequest("Đã bị xóa mềm.");
             bf.DeletedAt = DateTime.UtcNow;
@@ -130,64 +130,64 @@ namespace DataManagementApi.Controllers
             return NoContent();
         }
 
-        // BULK SOFT DELETE: api/business-fields/bulk-soft-delete
+        // BULK SOFT DELETE: api/business-/bulk-soft-delete
         [HttpPost("bulk-soft-delete")]
         public async Task<IActionResult> BulkSoftDelete([FromBody] List<int> ids)
         {
             if (ids == null || !ids.Any()) return BadRequest("Danh sách id không hợp lệ.");
-            var bfs = await _context.BusinessFields.Where(b => ids.Contains(b.Id) && b.DeletedAt == null).ToListAsync();
+            var bfs = await _context.Business.Where(b => ids.Contains(b.Id) && b.DeletedAt == null).ToListAsync();
             if (bfs.Count == 0) return NotFound("Không tìm thấy lĩnh vực nào để xóa mềm.");
             foreach (var bf in bfs) bf.DeletedAt = DateTime.UtcNow;
             await _context.SaveChangesAsync();
             return Ok(new { softDeleted = bfs.Count });
         }
 
-        // PERMANENT DELETE: api/business-fields/permanent-delete/{id}
+        // PERMANENT DELETE: api/business-/permanent-delete/{id}
         [HttpDelete("permanent-delete/{id}")]
         public async Task<IActionResult> PermanentDeleteBusinessField(int id)
         {
-            var bf = await _context.BusinessFields.FindAsync(id);
+            var bf = await _context.Business.FindAsync(id);
             if (bf == null) return NotFound();
-            _context.BusinessFields.Remove(bf);
+            _context.Business.Remove(bf);
             await _context.SaveChangesAsync();
             return NoContent();
         }
 
-        // BULK PERMANENT DELETE: api/business-fields/bulk-permanent-delete
+        // BULK PERMANENT DELETE: api/business-/bulk-permanent-delete
         [HttpPost("bulk-permanent-delete")]
         public async Task<IActionResult> BulkPermanentDelete([FromBody] List<int> ids)
         {
             if (ids == null || !ids.Any()) return BadRequest("Danh sách id không hợp lệ.");
-            var bfs = await _context.BusinessFields.Where(b => ids.Contains(b.Id)).ToListAsync();
+            var bfs = await _context.Business.Where(b => ids.Contains(b.Id)).ToListAsync();
             if (bfs.Count == 0) return NotFound("Không tìm thấy lĩnh vực nào để xóa vĩnh viễn.");
-            _context.BusinessFields.RemoveRange(bfs);
+            _context.Business.RemoveRange(bfs);
             await _context.SaveChangesAsync();
             return Ok(new { permanentlyDeleted = bfs.Count });
         }
 
-        // BULK RESTORE: api/business-fields/bulk-restore
+        // BULK RESTORE: api/business-/bulk-restore
         [HttpPost("bulk-restore")]
         public async Task<IActionResult> BulkRestore([FromBody] List<int> ids)
         {
             if (ids == null || !ids.Any()) return BadRequest("Danh sách id không hợp lệ.");
-            var bfs = await _context.BusinessFields.Where(b => ids.Contains(b.Id) && b.DeletedAt != null).ToListAsync();
+            var bfs = await _context.Business.Where(b => ids.Contains(b.Id) && b.DeletedAt != null).ToListAsync();
             if (bfs.Count == 0) return NotFound("Không tìm thấy lĩnh vực nào để khôi phục.");
             foreach (var bf in bfs) bf.DeletedAt = null;
             await _context.SaveChangesAsync();
             return Ok(new { restored = bfs.Count });
         }
 
-        // GET: api/business-fields/deleted
+        // GET: api/business-/deleted
         [HttpGet("deleted")]
-        public async Task<ActionResult<object>> GetDeletedBusinessFields([FromQuery] int page = 1, [FromQuery] int limit = 10, [FromQuery] string search = "")
+        public async Task<ActionResult<object>> GetDeletedBusiness([FromQuery] int page = 1, [FromQuery] int limit = 10, [FromQuery] string search = "")
         {
-            var query = _context.BusinessFields.Where(bf => bf.DeletedAt != null);
+            var query = _context.Business.Where(bf => bf.DeletedAt != null);
             if (!string.IsNullOrEmpty(search))
             {
                 query = query.Where(bf => bf.Name.Contains(search));
             }
             var total = await query.CountAsync();
-            var fields = await query.OrderByDescending(bf => bf.DeletedAt)
+            var business = await query.OrderByDescending(bf => bf.DeletedAt)
                 .Skip((page - 1) * limit).Take(limit)
                 .Select(bf => new BusinessFieldReadDto
                 {
@@ -199,7 +199,7 @@ namespace DataManagementApi.Controllers
                     UpdatedAt = bf.UpdatedAt,
                     DeletedAt = bf.DeletedAt
                 }).ToListAsync();
-            return Ok(new { data = fields, total, page, limit });
+            return Ok(new { data = business, total, page, limit });
         }
     }
 }
