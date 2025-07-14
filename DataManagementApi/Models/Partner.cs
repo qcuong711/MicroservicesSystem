@@ -14,5 +14,8 @@ namespace DataManagementApi.Models
         public string Email { get; set; } = string.Empty;
         public bool IsActive { get; set; }
         public DateTime? DeletedAt { get; set; } // For soft delete
+
+        public ICollection<PartnerBusiness>? PartnerBusiness { get; set; }
+        public ICollection<Business>? Business { get; set; }
     }
 }

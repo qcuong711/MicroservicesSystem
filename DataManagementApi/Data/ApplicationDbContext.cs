@@ -18,7 +18,10 @@ namespace DataManagementApi.Data
         public DbSet<Lecturer> Lecturers { get; set; }
         public DbSet<InternshipPeriod> InternshipPeriods { get; set; }
         public DbSet<ThesisPeriod> ThesisPeriods { get; set; }
-        
+        public DbSet<Business> Business { get; set; }
+        public DbSet<ThesisPeriodBusiness> ThesisPeriodBusiness { get; set; }
+        public DbSet<PartnerBusiness> PartnerBusiness { get; set; }
+
         // --- Models cho User, Role, Permission ---
         public DbSet<Role> Roles { get; set; }
         public DbSet<Permission> Permissions { get; set; }
@@ -164,6 +167,30 @@ namespace DataManagementApi.Data
                 .WithMany()
                 .HasForeignKey(l => l.DepartmentId)
                 .OnDelete(DeleteBehavior.Restrict);
+
+            // Cấu hình N-N ThesisPeriod <-> Business
+            modelBuilder.Entity<ThesisPeriodBusiness>()
+                .HasKey(tpbf => new { tpbf.ThesisPeriodId, tpbf.BusinessId });
+            modelBuilder.Entity<ThesisPeriodBusiness>()
+                .HasOne(tpbf => tpbf.ThesisPeriod)
+                .WithMany(tp => tp.ThesisPeriodBusiness)
+                .HasForeignKey(tpbf => tpbf.ThesisPeriodId);
+            modelBuilder.Entity<ThesisPeriodBusiness>()
+                .HasOne(tpbf => tpbf.Business)
+                .WithMany(bf => bf.ThesisPeriodBusiness)
+                .HasForeignKey(tpbf => tpbf.BusinessId);
+
+            // Cấu hình N-N Partner <-> Business
+            modelBuilder.Entity<PartnerBusiness>()
+                .HasKey(pbf => new { pbf.PartnerId, pbf.BusinessId });
+            modelBuilder.Entity<PartnerBusiness>()
+                .HasOne(pbf => pbf.Partner)
+                .WithMany(p => p.PartnerBusiness)
+                .HasForeignKey(pbf => pbf.PartnerId);
+            modelBuilder.Entity<PartnerBusiness>()
+                .HasOne(pbf => pbf.Business)
+                .WithMany(bf => bf.PartnerBusiness)
+                .HasForeignKey(pbf => pbf.BusinessId);
         }
     }
 }

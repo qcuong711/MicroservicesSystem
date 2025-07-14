@@ -35,5 +35,7 @@ namespace DataManagementApi.Models
         public DateTime CreatedAt { get; set; }
         public DateTime UpdatedAt { get; set; }
         public DateTime? DeletedAt { get; set; } // Soft delete
+
+        public ICollection<Business>? Business { get; set; }
     }
 }
