@@ -1,9 +1,6 @@
-using System.ComponentModel.DataAnnotations;
-using System.ComponentModel.DataAnnotations.Schema;
-
-namespace DataManagementApi.Models.Dtos.BusinessField
+namespace DataManagementApi.Models.Dtos.Business
 {
-    public class BusinessFieldReadDto
+    public class BusinessReadDto
     {
         public int Id { get; set; }
         public string Name { get; set; } = string.Empty;

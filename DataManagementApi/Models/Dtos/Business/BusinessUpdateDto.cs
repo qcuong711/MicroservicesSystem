@@ -1,9 +1,8 @@
 using System.ComponentModel.DataAnnotations;
-using System.ComponentModel.DataAnnotations.Schema;
 
-namespace DataManagementApi.Models.Dtos.BusinessField
+namespace DataManagementApi.Models.Dtos.Business
 {
-    public class BusinessFieldUpdateDto
+    public class BusinessUpdateDto
     {
         [Required]
         [StringLength(100)]

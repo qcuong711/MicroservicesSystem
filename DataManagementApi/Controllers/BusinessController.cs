@@ -1,6 +1,6 @@
 using DataManagementApi.Data;
 using DataManagementApi.Models;
-using DataManagementApi.Models.Dtos.BusinessField;
+using DataManagementApi.Models.Dtos.Business;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -28,7 +28,7 @@ namespace DataManagementApi.Controllers
             var total = await query.CountAsync();
             var business = await query.OrderBy(bf => bf.DisplayOrder).ThenBy(bf => bf.Name)
                 .Skip((page - 1) * limit).Take(limit)
-                .Select(bf => new BusinessFieldReadDto
+                .Select(bf => new BusinessReadDto
                 {
                     Id = bf.Id,
                     Name = bf.Name,
@@ -43,11 +43,11 @@ namespace DataManagementApi.Controllers
 
         // GET: api/business-/all
         [HttpGet("all")]
-        public async Task<ActionResult<IEnumerable<BusinessFieldReadDto>>> GetAllBusiness()
+        public async Task<ActionResult<IEnumerable<BusinessReadDto>>> GetAllBusiness()
         {
             var business = await _context.Business.Where(bf => bf.DeletedAt == null)
                 .OrderBy(bf => bf.DisplayOrder).ThenBy(bf => bf.Name)
-                .Select(bf => new BusinessFieldReadDto
+                .Select(bf => new BusinessReadDto
                 {
                     Id = bf.Id,
                     Name = bf.Name,
@@ -62,11 +62,11 @@ namespace DataManagementApi.Controllers
 
         // GET: api/business-/{id}
         [HttpGet("{id:int}")]
-        public async Task<ActionResult<BusinessFieldReadDto>> GetBusinessField(int id)
+        public async Task<ActionResult<BusinessReadDto>> GetBusiness(int id)
         {
             var bf = await _context.Business.FirstOrDefaultAsync(b => b.Id == id && b.DeletedAt == null);
             if (bf == null) return NotFound();
-            var dto = new BusinessFieldReadDto
+            var dto = new BusinessReadDto
             {
                 Id = bf.Id,
                 Name = bf.Name,
@@ -81,7 +81,7 @@ namespace DataManagementApi.Controllers
 
         // POST: api/business-
         [HttpPost]
-        public async Task<ActionResult<BusinessFieldReadDto>> PostBusinessField(BusinessFieldCreateDto dto)
+        public async Task<ActionResult<BusinessReadDto>> PostBusiness(BusinessCreateDto dto)
         {
             var bf = new Business
             {
@@ -91,7 +91,7 @@ namespace DataManagementApi.Controllers
             };
             _context.Business.Add(bf);
             await _context.SaveChangesAsync();
-            var result = new BusinessFieldReadDto
+            var result = new BusinessReadDto
             {
                 Id = bf.Id,
                 Name = bf.Name,
@@ -101,12 +101,12 @@ namespace DataManagementApi.Controllers
                 UpdatedAt = bf.UpdatedAt,
                 DeletedAt = bf.DeletedAt
             };
-            return CreatedAtAction(nameof(GetBusinessField), new { id = bf.Id }, result);
+            return CreatedAtAction(nameof(GetBusiness), new { id = bf.Id }, result);
         }
 
         // PUT: api/business-/{id}
         [HttpPut("{id}")]
-        public async Task<IActionResult> PutBusinessField(int id, BusinessFieldUpdateDto dto)
+        public async Task<IActionResult> PutBusiness(int id, BusinessUpdateDto dto)
         {
             var bf = await _context.Business.FindAsync(id);
             if (bf == null || bf.DeletedAt != null) return NotFound();
@@ -120,7 +120,7 @@ namespace DataManagementApi.Controllers
 
         // SOFT DELETE: api/business-/soft-delete/{id}
         [HttpPost("soft-delete/{id}")]
-        public async Task<IActionResult> SoftDeleteBusinessField(int id)
+        public async Task<IActionResult> SoftDeleteBusiness(int id)
         {
             var bf = await _context.Business.FindAsync(id);
             if (bf == null) return NotFound();
@@ -144,7 +144,7 @@ namespace DataManagementApi.Controllers
 
         // PERMANENT DELETE: api/business-/permanent-delete/{id}
         [HttpDelete("permanent-delete/{id}")]
-        public async Task<IActionResult> PermanentDeleteBusinessField(int id)
+        public async Task<IActionResult> PermanentDeleteBusiness(int id)
         {
             var bf = await _context.Business.FindAsync(id);
             if (bf == null) return NotFound();
@@ -189,7 +189,7 @@ namespace DataManagementApi.Controllers
             var total = await query.CountAsync();
             var business = await query.OrderByDescending(bf => bf.DeletedAt)
                 .Skip((page - 1) * limit).Take(limit)
-                .Select(bf => new BusinessFieldReadDto
+                .Select(bf => new BusinessReadDto
                 {
                     Id = bf.Id,
                     Name = bf.Name,

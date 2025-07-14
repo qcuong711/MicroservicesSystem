@@ -29,7 +29,7 @@ namespace DataManagementApi.Models
         // Quan hệ với các luận văn
         public ICollection<Thesis>? Theses { get; set; }
         // Thêm trường quản lý lĩnh vực hoạt động kinh doanh (nếu cần)
-        public ICollection<Business>? Business { get; set; } // N-N: ThesisPeriod - BusinessField
+        public ICollection<Business>? Business { get; set; } // N-N: ThesisPeriod - Business
         // Trường thứ tự hiển thị
         public int DisplayOrder { get; set; } = 0;
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
