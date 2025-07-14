@@ -1,5 +1,6 @@
 using DataManagementApi.Data;
 using DataManagementApi.Models;
+using DataManagementApi.Models.Dto;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -449,6 +450,47 @@ namespace DataManagementApi.Controllers
             await _context.SaveChangesAsync();
 
             return NoContent();
+        }
+
+        // POST: api/Users/{userId}/roles
+        [HttpPost("{userId}/roles")]
+        public async Task<IActionResult> AssignRoleToUser(int userId, [FromBody] UserRoleDto userRoleDto)
+        {
+            if (userRoleDto == null)
+            {
+                return BadRequest("Dữ liệu không hợp lệ.");
+            }
+
+            var userExists = await _context.Users.AnyAsync(u => u.Id == userId);
+            if (!userExists)
+            {
+                return NotFound($"Không tìm thấy người dùng với ID {userId}.");
+            }
+
+            var roleExists = await _context.Roles.AnyAsync(r => r.Id == userRoleDto.RoleId);
+            if (!roleExists)
+            {
+                return NotFound($"Không tìm thấy vai trò với ID {userRoleDto.RoleId}.");
+            }
+
+            var userRole = new UserRole
+            {
+                UserId = userId,
+                RoleId = userRoleDto.RoleId
+            };
+
+            var alreadyExists = await _context.UserRoles
+                .AnyAsync(ur => ur.UserId == userId && ur.RoleId == userRoleDto.RoleId);
+
+            if (alreadyExists)
+            {
+                return Conflict("Người dùng đã có vai trò này.");
+            }
+
+            _context.UserRoles.Add(userRole);
+            await _context.SaveChangesAsync();
+
+            return Ok(new { message = "Gán vai trò thành công." });
         }
 
         private bool UserExists(int id)
