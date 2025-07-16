@@ -439,6 +439,11 @@ namespace DataManagementApi.Controllers
             try
             {
                 var theses = await _context.Theses.Where(t => ids.Contains(t.Id)).ToListAsync();
+                if (theses.Count != ids.Count)
+                {
+                    var notFoundIds = ids.Except(theses.Select(t => t.Id)).ToList();
+                    return NotFound($"Không tìm thấy các khóa luận với ID: {string.Join(", ", notFoundIds)}");
+                }
                 foreach (var thesis in theses)
                 {
                     thesis.DeletedAt = DateTime.UtcNow;
@@ -448,7 +453,7 @@ namespace DataManagementApi.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, $"Lỗi khi xóa mềm nhiều khóa luận: {ex.Message}");
+                return StatusCode(500, $"Lỗi khi xóa mềm nhiều khóa luận: {ex.Message}\n{ex.StackTrace}");
             }
         }
 
