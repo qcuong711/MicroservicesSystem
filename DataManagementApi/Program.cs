@@ -21,9 +21,19 @@ builder.Services.AddCors(options =>
     options.AddPolicy(name: myAllowSpecificOrigins,
                       policy =>
                       {
-                          policy.WithOrigins("http://localhost:5500", "http://localhost:5173", "http://localhost:5174")
-                                .AllowAnyHeader()
-                                .AllowAnyMethod();
+                          var corsOrigins = builder.Configuration.GetValue<string>("CorsOrigins");
+                          if (builder.Environment.IsDevelopment())
+                          {
+                              policy.WithOrigins("http://localhost:5500", "http://localhost:5173", "http://localhost:5174")
+                                    .AllowAnyHeader()
+                                    .AllowAnyMethod();
+                          }
+                          else if (!string.IsNullOrEmpty(corsOrigins))
+                          {
+                              policy.WithOrigins(corsOrigins.Split(','))
+                                    .AllowAnyHeader()
+                                    .AllowAnyMethod();
+                          }
                       });
 });
 
@@ -124,7 +134,10 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-// app.UseHttpsRedirection(); // Tạm thời tắt HTTPS redirection cho development để tránh conflict với CORS
+if (!app.Environment.IsDevelopment())
+{
+    app.UseHttpsRedirection();
+}
 
 app.UseCors(myAllowSpecificOrigins);
 

@@ -1,0 +1,3 @@
+[submodule "QL_frontend/quanly-khoaluan-thuctap"]
+	path = QL_frontend/quanly-khoaluan-thuctap
+	url = https://github.com/thangph2146/quanly-khoaluan-thuctap
