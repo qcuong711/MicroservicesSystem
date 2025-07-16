@@ -416,21 +416,57 @@ namespace DataManagementApi.Controllers
         [HttpPost("bulk-permanent-delete")]
         public async Task<IActionResult> BulkPermanentDelete([FromBody] List<int> ids)
         {
-             if (ids == null || !ids.Any()) return BadRequest("Danh sách ID không hợp lệ.");
+            if (ids == null || !ids.Any()) return BadRequest(new { message = "Danh sách ID không hợp lệ." });
 
-            var users = await _context.Users
-                .Include(u => u.UserRoles)
-                .Where(u => ids.Contains(u.Id))
-                .ToListAsync();
+            try
+            {
+                // Xóa UserRoles liên kết
+                var userRoles = await _context.UserRoles.Where(ur => ids.Contains(ur.UserId)).ToListAsync();
+                if (userRoles.Any())
+                {
+                    _context.UserRoles.RemoveRange(userRoles);
+                }
 
-            if (users.Count == 0) return NotFound("Không tìm thấy người dùng hợp lệ để xóa vĩnh viễn.");
+                // Xóa Internships liên kết (StudentId)
+                var internships = await _context.Internships.Where(i => ids.Contains(i.StudentId)).ToListAsync();
+                if (internships.Any())
+                {
+                    _context.Internships.RemoveRange(internships);
+                }
 
-             // Note: You should consider what to do in Keycloak as well. 
-             // This implementation only removes from the local DB.
-            _context.Users.RemoveRange(users);
-            
-            await _context.SaveChangesAsync();
-            return Ok(new { message = $"Đã xóa vĩnh viễn {users.Count} người dùng." });
+                // Xóa Theses liên kết (StudentId)
+                var theses = await _context.Theses.Where(t => t.StudentId != null && ids.Contains((int)t.StudentId)).ToListAsync();
+                if (theses.Any())
+                {
+                    _context.Theses.RemoveRange(theses);
+                }
+
+                // Có thể thêm các bảng liên kết khác ở đây nếu cần
+
+                var users = await _context.Users
+                    .Include(u => u.UserRoles)
+                    .Where(u => ids.Contains(u.Id))
+                    .ToListAsync();
+
+                if (users.Count == 0) return NotFound(new { message = "Không tìm thấy người dùng hợp lệ để xóa vĩnh viễn." });
+
+                _context.Users.RemoveRange(users);
+                await _context.SaveChangesAsync();
+                return Ok(new { message = $"Đã xóa vĩnh viễn {users.Count} người dùng và toàn bộ dữ liệu liên kết." });
+            }
+            catch (DbUpdateException ex)
+            {
+                return StatusCode(500, new { message = "Không thể xóa user vì còn dữ liệu liên kết khác (ví dụ: thực tập, luận văn, ...)", details = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                // Xử lý lỗi null rõ ràng
+                if (ex is InvalidOperationException || ex is NullReferenceException || ex.Message.Contains("Data is Null"))
+                {
+                    return StatusCode(500, new { message = "Lỗi dữ liệu: Có thể có trường liên kết null hoặc dữ liệu không hợp lệ. Vui lòng kiểm tra lại dữ liệu liên kết trước khi xóa.", details = ex.Message });
+                }
+                return StatusCode(500, new { message = "Lỗi hệ thống", details = ex.Message });
+            }
         }
 
 
