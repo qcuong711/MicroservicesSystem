@@ -1,12 +1,11 @@
 {
   "Version": 1,
-  "Hash": "hSNatRe+0J1FhfNErJOt+KLHz+mvogx/W61NHdz0Xsk=",
+  "Hash": "dK0ZGAS0BAKj5WTyJcD5deZ5klBaP7AdYik8bD7uQKs=",
   "Source": "DataManagementApi",
   "BasePath": "_content/DataManagementApi",
   "Mode": "Default",
   "ManifestType": "Build",
   "ReferencedProjectsConfiguration": [],
   "DiscoveryPatterns": [],
-  "Assets": [],
-  "Endpoints": []
+  "Assets": []
 }

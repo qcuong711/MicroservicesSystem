@@ -1,5 +1,6 @@
 using DataManagementApi.Data;
 using DataManagementApi.Models;
+using DataManagementApi.Models.Dtos.Internship;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -27,30 +28,39 @@ namespace DataManagementApi.Controllers
                 .Where(i => i.DeletedAt == null)
                 .Include(i => i.Student)
                 .Include(i => i.Partner)
-                .Include(i => i.AcademicYear)
-                .Include(i => i.Semester)
+                .Include(i => i.InternshipPeriod)
+                    .ThenInclude(p => p!.AcademicYear)
+                .Include(i => i.InternshipPeriod)
+                    .ThenInclude(p => p!.Semester)
                 .AsQueryable();
-
             if (!string.IsNullOrEmpty(search))
             {
-                // Note: The 'Title' property does not exist on the Internship model.
-                // Assuming you want to search by student name or partner name.
-                // Please adjust the model if a 'Title' is needed.
                 query = query.Where(i => (i.Student != null && i.Student.Name.Contains(search)) ||
                                          (i.Partner != null && i.Partner.Name.Contains(search)));
             }
-            
             var totalCount = await query.CountAsync();
-
-            var internships = await query
+            var internshipDtos = await query
                 .OrderByDescending(i => i.Id)
                 .Skip((page - 1) * limit)
                 .Take(limit)
+                .Select(i => new InternshipReadDto
+                {
+                    Id = i.Id,
+                    Title = i.Title,
+                    StudentId = i.StudentId,
+                    StudentName = i.Student != null ? i.Student.Name : null,
+                    PartnerId = i.PartnerId,
+                    PartnerName = i.Partner != null ? i.Partner.Name : null,
+                    InternshipPeriodId = i.InternshipPeriodId,
+                    InternshipPeriodName = i.InternshipPeriod != null ? i.InternshipPeriod.Name : null,
+                    ReportUrl = i.ReportUrl,
+                    Grade = i.Grade,
+                    DeletedAt = i.DeletedAt
+                })
                 .ToListAsync();
-
             return Ok(new 
             {
-                data = internships,
+                data = internshipDtos,
                 total = totalCount,
                 page,
                 limit
@@ -58,87 +68,127 @@ namespace DataManagementApi.Controllers
         }
 
         [HttpGet("all")]
-        public async Task<ActionResult<IEnumerable<Internship>>> GetAllInternships()
+        public async Task<ActionResult<IEnumerable<InternshipReadDto>>> GetAllInternships()
         {
-            return await _context.Internships
+            var internships = await _context.Internships
                 .Where(i => i.DeletedAt == null)
+                .Include(i => i.Student)
+                .Include(i => i.Partner)
+                .Include(i => i.InternshipPeriod)
+                    .ThenInclude(p => p!.AcademicYear)
+                .Include(i => i.InternshipPeriod)
+                    .ThenInclude(p => p!.Semester)
                 .OrderByDescending(i => i.Id)
                 .ToListAsync();
+            var internshipDtos = internships.Select(i => new InternshipReadDto
+            {
+                Id = i.Id,
+                Title = i.Title,
+                StudentId = i.StudentId,
+                StudentName = i.Student != null ? i.Student.Name : null,
+                PartnerId = i.PartnerId,
+                PartnerName = i.Partner != null ? i.Partner.Name : null,
+                InternshipPeriodId = i.InternshipPeriodId,
+                InternshipPeriodName = i.InternshipPeriod != null ? i.InternshipPeriod.Name : null,
+                ReportUrl = i.ReportUrl,
+                Grade = i.Grade,
+                DeletedAt = i.DeletedAt
+            }).ToList();
+            return Ok(internshipDtos);
         }
 
         // GET: api/Internships/5
         [HttpGet("{id}")]
-        public async Task<ActionResult<Internship>> GetInternship(int id)
+        public async Task<ActionResult<InternshipReadDto>> GetInternship(int id)
         {
             var internship = await _context.Internships
                 .Where(i => i.Id == id && i.DeletedAt == null)
                 .Include(i => i.Student)
                 .Include(i => i.Partner)
-                .Include(i => i.AcademicYear)
-                .Include(i => i.Semester)
+                .Include(i => i.InternshipPeriod)
+                    .ThenInclude(p => p!.AcademicYear)
+                .Include(i => i.InternshipPeriod)
+                    .ThenInclude(p => p!.Semester)
+                .Select(i => new InternshipReadDto
+                {
+                    Id = i.Id,
+                    Title = i.Title,
+                    StudentId = i.StudentId,
+                    StudentName = i.Student != null ? i.Student.Name : null,
+                    PartnerId = i.PartnerId,
+                    PartnerName = i.Partner != null ? i.Partner.Name : null,
+                    InternshipPeriodId = i.InternshipPeriodId,
+                    InternshipPeriodName = i.InternshipPeriod != null ? i.InternshipPeriod.Name : null,
+                    ReportUrl = i.ReportUrl,
+                    Grade = i.Grade,
+                    DeletedAt = i.DeletedAt
+                })
                 .FirstOrDefaultAsync();
-
             if (internship == null)
             {
                 return NotFound();
             }
-
             return internship;
         }
         
         // POST: api/Internships
         [HttpPost]
-        public async Task<ActionResult<Internship>> PostInternship(CreateInternshipDto createDto)
+        public async Task<ActionResult<InternshipReadDto>> PostInternship(InternshipCreateDto createDto)
         {
             if (!ModelState.IsValid)
             {
                 return BadRequest(ModelState);
             }
-
             var student = await _context.Users.FindAsync(createDto.StudentId);
             if (student == null) return BadRequest(new { message = $"Sinh viên với ID {createDto.StudentId} không tồn tại" });
-
             var partner = await _context.Partners.FindAsync(createDto.PartnerId);
             if (partner == null) return BadRequest(new { message = $"Đối tác với ID {createDto.PartnerId} không tồn tại" });
-
-            var academicYear = await _context.AcademicYears.FindAsync(createDto.AcademicYearId);
-            if (academicYear == null) return BadRequest(new { message = $"Năm học với ID {createDto.AcademicYearId} không tồn tại" });
-            
-            var semester = await _context.Semesters.FindAsync(createDto.SemesterId);
-            if (semester == null) return BadRequest(new { message = $"Học kỳ với ID {createDto.SemesterId} không tồn tại" });
-
+            var internshipPeriod = await _context.InternshipPeriods.FindAsync(createDto.InternshipPeriodId);
+            if (internshipPeriod == null) return BadRequest(new { message = $"Đợt thực tập với ID {createDto.InternshipPeriodId} không tồn tại" });
             var existingInternship = await _context.Internships
                 .AnyAsync(i => i.StudentId == createDto.StudentId && 
-                               i.AcademicYearId == createDto.AcademicYearId && 
-                               i.SemesterId == createDto.SemesterId &&
+                               i.InternshipPeriodId == createDto.InternshipPeriodId &&
                                i.DeletedAt == null);
             if (existingInternship)
             {
-                return BadRequest(new { message = "Sinh viên đã có thực tập trong năm học và học kỳ này" });
+                return BadRequest(new { message = "Sinh viên đã có thực tập trong đợt này" });
             }
-
-            var internship = new Internship
+            var internshipEntity = new Internship
             {
+                Title = createDto.Title,
                 StudentId = createDto.StudentId,
                 PartnerId = createDto.PartnerId,
-                AcademicYearId = createDto.AcademicYearId,
-                SemesterId = createDto.SemesterId,
+                InternshipPeriodId = createDto.InternshipPeriodId,
                 Grade = createDto.Grade,
                 ReportUrl = createDto.ReportUrl,
-                DeletedAt = null // Ensure not deleted on creation
+                DeletedAt = null
             };
-
-            _context.Internships.Add(internship);
+            _context.Internships.Add(internshipEntity);
             await _context.SaveChangesAsync();
-            
             var createdInternship = await _context.Internships
                 .Include(i => i.Student)
                 .Include(i => i.Partner)
-                .Include(i => i.AcademicYear)
-                .Include(i => i.Semester)
-                .FirstOrDefaultAsync(i => i.Id == internship.Id);
-
-            return CreatedAtAction(nameof(GetInternship), new { id = internship.Id }, createdInternship);
+                .Include(i => i.InternshipPeriod)
+                    .ThenInclude(p => p!.AcademicYear)
+                .Include(i => i.InternshipPeriod)
+                    .ThenInclude(p => p!.Semester)
+                .Where(i => i.Id == internshipEntity.Id)
+                .Select(i => new InternshipReadDto
+                {
+                    Id = i.Id,
+                    Title = i.Title,
+                    StudentId = i.StudentId,
+                    StudentName = i.Student != null ? i.Student.Name : null,
+                    PartnerId = i.PartnerId,
+                    PartnerName = i.Partner != null ? i.Partner.Name : null,
+                    InternshipPeriodId = i.InternshipPeriodId,
+                    InternshipPeriodName = i.InternshipPeriod != null ? i.InternshipPeriod.Name : null,
+                    ReportUrl = i.ReportUrl,
+                    Grade = i.Grade,
+                    DeletedAt = i.DeletedAt
+                })
+                .FirstOrDefaultAsync();
+            return CreatedAtAction(nameof(GetInternship), new { id = internshipEntity.Id }, createdInternship);
         }
 
         // PUT: api/Internships/5
@@ -146,21 +196,16 @@ namespace DataManagementApi.Controllers
         public async Task<IActionResult> PutInternship(int id, InternshipUpdateDto updateDto)
         {
             var existingInternship = await _context.Internships.FindAsync(id);
-
             if (existingInternship == null || existingInternship.DeletedAt != null)
             {
                 return NotFound("Kỳ thực tập không tồn tại hoặc đã bị xóa.");
             }
-            
-            // Update properties from DTO if they are provided
             if (updateDto.StudentId.HasValue) existingInternship.StudentId = updateDto.StudentId.Value;
             if (updateDto.PartnerId.HasValue) existingInternship.PartnerId = updateDto.PartnerId.Value;
-            if (updateDto.AcademicYearId.HasValue) existingInternship.AcademicYearId = updateDto.AcademicYearId.Value;
-            if (updateDto.SemesterId.HasValue) existingInternship.SemesterId = updateDto.SemesterId.Value;
+            if (updateDto.InternshipPeriodId.HasValue) existingInternship.InternshipPeriodId = updateDto.InternshipPeriodId.Value;
             if (updateDto.Grade.HasValue) existingInternship.Grade = updateDto.Grade.Value;
             if (updateDto.ReportUrl != null) existingInternship.ReportUrl = updateDto.ReportUrl;
-
-
+            if (updateDto.Title != null) existingInternship.Title = updateDto.Title;
             try
             {
                 await _context.SaveChangesAsync();
@@ -176,8 +221,29 @@ namespace DataManagementApi.Controllers
                     throw;
                 }
             }
-
-            return NoContent();
+            var updatedInternship = await _context.Internships
+                .Include(i => i.Student)
+                .Include(i => i.Partner)
+                .Include(i => i.InternshipPeriod)
+                    .ThenInclude(p => p!.AcademicYear)
+                .Include(i => i.InternshipPeriod)
+                    .ThenInclude(p => p!.Semester)
+                .Select(i => new InternshipReadDto
+                {
+                    Id = i.Id,
+                    Title = i.Title,
+                    StudentId = i.StudentId,
+                    StudentName = i.Student != null ? i.Student.Name : null,
+                    PartnerId = i.PartnerId,
+                    PartnerName = i.Partner != null ? i.Partner.Name : null,
+                    InternshipPeriodId = i.InternshipPeriodId,
+                    InternshipPeriodName = i.InternshipPeriod != null ? i.InternshipPeriod.Name : null,
+                    ReportUrl = i.ReportUrl,
+                    Grade = i.Grade,
+                    DeletedAt = i.DeletedAt
+                })
+                .FirstOrDefaultAsync();
+            return Ok(updatedInternship);
         }
         
         // SOFT DELETE: api/internships/soft-delete/5
@@ -201,23 +267,34 @@ namespace DataManagementApi.Controllers
                 .Where(i => i.DeletedAt != null)
                  .Include(i => i.Student)
                 .Include(i => i.Partner)
+                .Include(i => i.InternshipPeriod)
                 .AsQueryable();
-            
             if (!string.IsNullOrEmpty(search))
             {
                  query = query.Where(i => (i.Student != null && i.Student.Name.Contains(search)) ||
                                          (i.Partner != null && i.Partner.Name.Contains(search)));
             }
-
             var totalCount = await query.CountAsync();
-
-            var internships = await query
+            var internshipDtos = await query
                 .OrderByDescending(i => i.DeletedAt)
                 .Skip((page - 1) * limit)
                 .Take(limit)
+                .Select(i => new InternshipReadDto
+                {
+                    Id = i.Id,
+                    Title = i.Title,
+                    StudentId = i.StudentId,
+                    StudentName = i.Student != null ? i.Student.Name : null,
+                    PartnerId = i.PartnerId,
+                    PartnerName = i.Partner != null ? i.Partner.Name : null,
+                    InternshipPeriodId = i.InternshipPeriodId,
+                    InternshipPeriodName = i.InternshipPeriod != null ? i.InternshipPeriod.Name : null,
+                    ReportUrl = i.ReportUrl,
+                    Grade = i.Grade,
+                    DeletedAt = i.DeletedAt
+                })
                 .ToListAsync();
-            
-            return Ok(new { data = internships, total = totalCount, page, limit });
+            return Ok(new { data = internshipDtos, total = totalCount, page, limit });
         }
         
         // BULK SOFT DELETE: api/internships/bulk-soft-delete

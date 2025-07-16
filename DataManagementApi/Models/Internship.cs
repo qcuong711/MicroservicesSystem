@@ -42,10 +42,20 @@ namespace DataManagementApi.Models
         [ForeignKey("SemesterId")]
         public Semester? Semester { get; set; }
 
+        // Foreign key to InternshipPeriod
+        [Required]
+        [ForeignKey("InternshipPeriod")]
+        public int InternshipPeriodId { get; set; }
+        public InternshipPeriod? InternshipPeriod { get; set; }
+
         public string? ReportUrl { get; set; }
         
         public double? Grade { get; set; }
         
         public DateTime? DeletedAt { get; set; }
+
+        [Required]
+        [StringLength(100)]
+        public string Title { get; set; } = string.Empty;
     }
 }

@@ -1,5 +1,6 @@
 using DataManagementApi.Data;
 using DataManagementApi.Models;
+using DataManagementApi.Models.Dtos.Semester;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -42,6 +43,15 @@ namespace DataManagementApi.Controllers
                     .ThenBy(s => s.Name)
                     .Skip((page - 1) * limit)
                     .Take(limit)
+                    .Select(s => new SemesterReadDto
+                    {
+                        Id = s.Id,
+                        Name = s.Name,
+                        AcademicYearId = s.AcademicYearId,
+                        StartDate = s.StartDate,
+                        EndDate = s.EndDate,
+                        DeletedAt = s.DeletedAt
+                    })
                     .ToListAsync();
 
                 // Return paginated response format
@@ -61,15 +71,25 @@ namespace DataManagementApi.Controllers
         
         // GET: api/Semesters/all
         [HttpGet("all")]
-        public async Task<ActionResult<IEnumerable<Semester>>> GetAllSemesters()
+        public async Task<ActionResult<IEnumerable<SemesterReadDto>>> GetAllSemesters()
         {
             try
             {
-                return await _context.Semesters
+                var semesters = await _context.Semesters
                     .Where(d => d.DeletedAt == null)
                     .OrderByDescending(s => s.AcademicYear.StartDate)
                     .ThenBy(s => s.Name)
+                    .Select(s => new SemesterReadDto
+                    {
+                        Id = s.Id,
+                        Name = s.Name,
+                        AcademicYearId = s.AcademicYearId,
+                        StartDate = s.StartDate,
+                        EndDate = s.EndDate,
+                        DeletedAt = s.DeletedAt
+                    })
                     .ToListAsync();
+                return Ok(semesters);
             }
             catch (Exception)
             {
@@ -79,7 +99,7 @@ namespace DataManagementApi.Controllers
 
         // GET: api/Semesters/5
         [HttpGet("{id:int}")]
-        public async Task<ActionResult<Semester>> GetSemester(int id)
+        public async Task<ActionResult<SemesterReadDto>> GetSemester(int id)
         {
             try
             {
@@ -93,7 +113,17 @@ namespace DataManagementApi.Controllers
                     return NotFound();
                 }
 
-                return semester;
+                var dto = new SemesterReadDto
+                {
+                    Id = semester.Id,
+                    Name = semester.Name,
+                    AcademicYearId = semester.AcademicYearId,
+                    StartDate = semester.StartDate,
+                    EndDate = semester.EndDate,
+                    DeletedAt = semester.DeletedAt
+                };
+
+                return Ok(dto);
             }
             catch (Exception)
             {
@@ -103,7 +133,7 @@ namespace DataManagementApi.Controllers
 
         // PUT: api/Semesters/5
         [HttpPut("{id}")]
-        public async Task<IActionResult> PutSemester(int id, UpdateSemesterDto semesterDto)
+        public async Task<IActionResult> PutSemester(int id, SemesterUpdateDto semesterDto)
         {
             var semester = await _context.Semesters.FindAsync(id);
             if (semester == null || semester.DeletedAt != null)
@@ -130,7 +160,7 @@ namespace DataManagementApi.Controllers
             semester.AcademicYearId = semesterDto.AcademicYearId;
             semester.StartDate = semesterDto.StartDate;
             semester.EndDate = semesterDto.EndDate;
-            
+
             try
             {
                 await _context.SaveChangesAsync();
@@ -152,13 +182,25 @@ namespace DataManagementApi.Controllers
             }
 
             var updatedSemester = await _context.Semesters.Include(s => s.AcademicYear).FirstOrDefaultAsync(s => s.Id == id);
-
-            return Ok(updatedSemester);
+            if (updatedSemester == null)
+            {
+                return NotFound();
+            }
+            var dto = new SemesterReadDto
+            {
+                Id = updatedSemester.Id,
+                Name = updatedSemester.Name,
+                AcademicYearId = updatedSemester.AcademicYearId,
+                StartDate = updatedSemester.StartDate,
+                EndDate = updatedSemester.EndDate,
+                DeletedAt = updatedSemester.DeletedAt
+            };
+            return Ok(dto);
         }
 
         // POST: api/Semesters
         [HttpPost]
-        public async Task<ActionResult<Semester>> PostSemester(CreateSemesterDto semesterDto)
+        public async Task<ActionResult<SemesterReadDto>> PostSemester(SemesterCreateDto semesterDto)
         {
             try
             {
@@ -175,7 +217,9 @@ namespace DataManagementApi.Controllers
                 var semester = new Semester
                 {
                     Name = semesterDto.Name,
-                    AcademicYearId = semesterDto.AcademicYearId
+                    AcademicYearId = semesterDto.AcademicYearId,
+                    StartDate = semesterDto.StartDate,
+                    EndDate = semesterDto.EndDate
                 };
 
                 _context.Semesters.Add(semester);
@@ -184,8 +228,20 @@ namespace DataManagementApi.Controllers
                 var createdSemester = await _context.Semesters
                     .Include(s => s.AcademicYear)
                     .FirstOrDefaultAsync(s => s.Id == semester.Id);
-
-                return CreatedAtAction(nameof(GetSemester), new { id = semester.Id }, createdSemester);
+                if (createdSemester == null)
+                {
+                    return StatusCode(500, new { message = "Lỗi khi tạo mới học kỳ" });
+                }
+                var dto = new SemesterReadDto
+                {
+                    Id = createdSemester.Id,
+                    Name = createdSemester.Name,
+                    AcademicYearId = createdSemester.AcademicYearId,
+                    StartDate = createdSemester.StartDate,
+                    EndDate = createdSemester.EndDate,
+                    DeletedAt = createdSemester.DeletedAt
+                };
+                return CreatedAtAction(nameof(GetSemester), new { id = semester.Id }, dto);
             }
             catch (Exception ex)
             {
@@ -323,6 +379,15 @@ namespace DataManagementApi.Controllers
                     .OrderByDescending(s => s.DeletedAt)
                     .Skip((page - 1) * limit)
                     .Take(limit)
+                    .Select(s => new SemesterReadDto
+                    {
+                        Id = s.Id,
+                        Name = s.Name,
+                        AcademicYearId = s.AcademicYearId,
+                        StartDate = s.StartDate,
+                        EndDate = s.EndDate,
+                        DeletedAt = s.DeletedAt
+                    })
                     .ToListAsync();
                 
                 return Ok(new

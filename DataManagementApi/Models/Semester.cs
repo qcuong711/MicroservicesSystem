@@ -9,5 +9,7 @@ namespace DataManagementApi.Models
         public DateTime StartDate { get; set; }
         public DateTime EndDate { get; set; }
         public DateTime? DeletedAt { get; set; }
+        // Ensure all fields from DTOs are present and match
+        // No additional fields required as all DTO fields are covered
     }
-} 
+}

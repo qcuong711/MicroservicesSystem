@@ -22,6 +22,51 @@ namespace DataManagementApi.Migrations
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
+            modelBuilder.Entity("BusinessPartner", b =>
+                {
+                    b.Property<int>("BusinessId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("PartnersId")
+                        .HasColumnType("int");
+
+                    b.HasKey("BusinessId", "PartnersId");
+
+                    b.HasIndex("PartnersId");
+
+                    b.ToTable("BusinessPartner");
+                });
+
+            modelBuilder.Entity("BusinessThesis", b =>
+                {
+                    b.Property<int>("BusinessId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("ThesesId")
+                        .HasColumnType("int");
+
+                    b.HasKey("BusinessId", "ThesesId");
+
+                    b.HasIndex("ThesesId");
+
+                    b.ToTable("BusinessThesis");
+                });
+
+            modelBuilder.Entity("BusinessThesisPeriod", b =>
+                {
+                    b.Property<int>("BusinessId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("ThesisPeriodsId")
+                        .HasColumnType("int");
+
+                    b.HasKey("BusinessId", "ThesisPeriodsId");
+
+                    b.HasIndex("ThesisPeriodsId");
+
+                    b.ToTable("BusinessThesisPeriod");
+                });
+
             modelBuilder.Entity("DataManagementApi.Models.AcademicYear", b =>
                 {
                     b.Property<int>("Id")
@@ -52,6 +97,42 @@ namespace DataManagementApi.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("AcademicYears");
+                });
+
+            modelBuilder.Entity("DataManagementApi.Models.Business", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Description")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("DisplayOrder")
+                        .HasColumnType("int");
+
+                    b.Property<bool?>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Business");
                 });
 
             modelBuilder.Entity("DataManagementApi.Models.Department", b =>
@@ -100,6 +181,9 @@ namespace DataManagementApi.Migrations
                     b.Property<double?>("Grade")
                         .HasColumnType("float");
 
+                    b.Property<int>("InternshipPeriodId")
+                        .HasColumnType("int");
+
                     b.Property<int>("PartnerId")
                         .HasColumnType("int");
 
@@ -112,9 +196,16 @@ namespace DataManagementApi.Migrations
                     b.Property<int>("StudentId")
                         .HasColumnType("int");
 
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
                     b.HasKey("Id");
 
                     b.HasIndex("AcademicYearId");
+
+                    b.HasIndex("InternshipPeriodId");
 
                     b.HasIndex("PartnerId");
 
@@ -123,6 +214,55 @@ namespace DataManagementApi.Migrations
                     b.HasIndex("StudentId");
 
                     b.ToTable("Internships");
+                });
+
+            modelBuilder.Entity("DataManagementApi.Models.InternshipPeriod", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("AcademicYearId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Description")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("EndDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<int>("SemesterId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("StartDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AcademicYearId");
+
+                    b.HasIndex("SemesterId");
+
+                    b.ToTable("InternshipPeriods");
                 });
 
             modelBuilder.Entity("DataManagementApi.Models.Lecturer", b =>
@@ -262,6 +402,21 @@ namespace DataManagementApi.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("Partners");
+                });
+
+            modelBuilder.Entity("DataManagementApi.Models.PartnerBusiness", b =>
+                {
+                    b.Property<int>("PartnerId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("BusinessId")
+                        .HasColumnType("int");
+
+                    b.HasKey("PartnerId", "BusinessId");
+
+                    b.HasIndex("BusinessId");
+
+                    b.ToTable("PartnerBusiness");
                 });
 
             modelBuilder.Entity("DataManagementApi.Models.Permission", b =>
@@ -453,6 +608,9 @@ namespace DataManagementApi.Migrations
                     b.Property<int>("SupervisorId")
                         .HasColumnType("int");
 
+                    b.Property<int>("ThesisPeriodId")
+                        .HasColumnType("int");
+
                     b.Property<string>("Title")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
@@ -472,7 +630,76 @@ namespace DataManagementApi.Migrations
 
                     b.HasIndex("SupervisorId");
 
+                    b.HasIndex("ThesisPeriodId");
+
                     b.ToTable("Theses");
+                });
+
+            modelBuilder.Entity("DataManagementApi.Models.ThesisPeriod", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("AcademicYearId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Description")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("DisplayOrder")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("EndDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<int>("SemesterId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("StartDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AcademicYearId");
+
+                    b.HasIndex("SemesterId");
+
+                    b.ToTable("ThesisPeriods");
+                });
+
+            modelBuilder.Entity("DataManagementApi.Models.ThesisPeriodBusiness", b =>
+                {
+                    b.Property<int>("ThesisPeriodId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("BusinessId")
+                        .HasColumnType("int");
+
+                    b.HasKey("ThesisPeriodId", "BusinessId");
+
+                    b.HasIndex("BusinessId");
+
+                    b.ToTable("ThesisPeriodBusiness");
                 });
 
             modelBuilder.Entity("DataManagementApi.Models.User", b =>
@@ -536,6 +763,51 @@ namespace DataManagementApi.Migrations
                     b.ToTable("UserRoles");
                 });
 
+            modelBuilder.Entity("BusinessPartner", b =>
+                {
+                    b.HasOne("DataManagementApi.Models.Business", null)
+                        .WithMany()
+                        .HasForeignKey("BusinessId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("DataManagementApi.Models.Partner", null)
+                        .WithMany()
+                        .HasForeignKey("PartnersId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("BusinessThesis", b =>
+                {
+                    b.HasOne("DataManagementApi.Models.Business", null)
+                        .WithMany()
+                        .HasForeignKey("BusinessId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("DataManagementApi.Models.Thesis", null)
+                        .WithMany()
+                        .HasForeignKey("ThesesId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("BusinessThesisPeriod", b =>
+                {
+                    b.HasOne("DataManagementApi.Models.Business", null)
+                        .WithMany()
+                        .HasForeignKey("BusinessId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("DataManagementApi.Models.ThesisPeriod", null)
+                        .WithMany()
+                        .HasForeignKey("ThesisPeriodsId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("DataManagementApi.Models.Department", b =>
                 {
                     b.HasOne("DataManagementApi.Models.Department", "ParentDepartment")
@@ -551,6 +823,12 @@ namespace DataManagementApi.Migrations
                     b.HasOne("DataManagementApi.Models.AcademicYear", "AcademicYear")
                         .WithMany()
                         .HasForeignKey("AcademicYearId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("DataManagementApi.Models.InternshipPeriod", "InternshipPeriod")
+                        .WithMany("Internships")
+                        .HasForeignKey("InternshipPeriodId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
@@ -563,7 +841,7 @@ namespace DataManagementApi.Migrations
                     b.HasOne("DataManagementApi.Models.Semester", "Semester")
                         .WithMany()
                         .HasForeignKey("SemesterId")
-                        .OnDelete(DeleteBehavior.Restrict)
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.HasOne("DataManagementApi.Models.User", "Student")
@@ -574,11 +852,32 @@ namespace DataManagementApi.Migrations
 
                     b.Navigation("AcademicYear");
 
+                    b.Navigation("InternshipPeriod");
+
                     b.Navigation("Partner");
 
                     b.Navigation("Semester");
 
                     b.Navigation("Student");
+                });
+
+            modelBuilder.Entity("DataManagementApi.Models.InternshipPeriod", b =>
+                {
+                    b.HasOne("DataManagementApi.Models.AcademicYear", "AcademicYear")
+                        .WithMany()
+                        .HasForeignKey("AcademicYearId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("DataManagementApi.Models.Semester", "Semester")
+                        .WithMany()
+                        .HasForeignKey("SemesterId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("AcademicYear");
+
+                    b.Navigation("Semester");
                 });
 
             modelBuilder.Entity("DataManagementApi.Models.Lecturer", b =>
@@ -599,6 +898,25 @@ namespace DataManagementApi.Migrations
                         .OnDelete(DeleteBehavior.Restrict);
 
                     b.Navigation("Parent");
+                });
+
+            modelBuilder.Entity("DataManagementApi.Models.PartnerBusiness", b =>
+                {
+                    b.HasOne("DataManagementApi.Models.Business", "Business")
+                        .WithMany("PartnerBusiness")
+                        .HasForeignKey("BusinessId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("DataManagementApi.Models.Partner", "Partner")
+                        .WithMany("PartnerBusiness")
+                        .HasForeignKey("PartnerId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Business");
+
+                    b.Navigation("Partner");
                 });
 
             modelBuilder.Entity("DataManagementApi.Models.RoleMenu", b =>
@@ -664,7 +982,7 @@ namespace DataManagementApi.Migrations
                     b.HasOne("DataManagementApi.Models.AcademicYear", "AcademicYear")
                         .WithMany()
                         .HasForeignKey("AcademicYearId")
-                        .OnDelete(DeleteBehavior.Restrict)
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.HasOne("DataManagementApi.Models.Lecturer", "Examiner")
@@ -675,7 +993,7 @@ namespace DataManagementApi.Migrations
                     b.HasOne("DataManagementApi.Models.Semester", "Semester")
                         .WithMany()
                         .HasForeignKey("SemesterId")
-                        .OnDelete(DeleteBehavior.Restrict)
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.HasOne("DataManagementApi.Models.Student", "Student")
@@ -690,6 +1008,12 @@ namespace DataManagementApi.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.HasOne("DataManagementApi.Models.ThesisPeriod", "ThesisPeriod")
+                        .WithMany("Theses")
+                        .HasForeignKey("ThesisPeriodId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
                     b.Navigation("AcademicYear");
 
                     b.Navigation("Examiner");
@@ -699,6 +1023,46 @@ namespace DataManagementApi.Migrations
                     b.Navigation("Student");
 
                     b.Navigation("Supervisor");
+
+                    b.Navigation("ThesisPeriod");
+                });
+
+            modelBuilder.Entity("DataManagementApi.Models.ThesisPeriod", b =>
+                {
+                    b.HasOne("DataManagementApi.Models.AcademicYear", "AcademicYear")
+                        .WithMany()
+                        .HasForeignKey("AcademicYearId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("DataManagementApi.Models.Semester", "Semester")
+                        .WithMany()
+                        .HasForeignKey("SemesterId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("AcademicYear");
+
+                    b.Navigation("Semester");
+                });
+
+            modelBuilder.Entity("DataManagementApi.Models.ThesisPeriodBusiness", b =>
+                {
+                    b.HasOne("DataManagementApi.Models.Business", "Business")
+                        .WithMany("ThesisPeriodBusiness")
+                        .HasForeignKey("BusinessId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("DataManagementApi.Models.ThesisPeriod", "ThesisPeriod")
+                        .WithMany("ThesisPeriodBusiness")
+                        .HasForeignKey("ThesisPeriodId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Business");
+
+                    b.Navigation("ThesisPeriod");
                 });
 
             modelBuilder.Entity("DataManagementApi.Models.UserRole", b =>
@@ -720,9 +1084,21 @@ namespace DataManagementApi.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("DataManagementApi.Models.Business", b =>
+                {
+                    b.Navigation("PartnerBusiness");
+
+                    b.Navigation("ThesisPeriodBusiness");
+                });
+
             modelBuilder.Entity("DataManagementApi.Models.Department", b =>
                 {
                     b.Navigation("ChildDepartments");
+                });
+
+            modelBuilder.Entity("DataManagementApi.Models.InternshipPeriod", b =>
+                {
+                    b.Navigation("Internships");
                 });
 
             modelBuilder.Entity("DataManagementApi.Models.Menu", b =>
@@ -730,6 +1106,11 @@ namespace DataManagementApi.Migrations
                     b.Navigation("ChildMenus");
 
                     b.Navigation("RoleMenus");
+                });
+
+            modelBuilder.Entity("DataManagementApi.Models.Partner", b =>
+                {
+                    b.Navigation("PartnerBusiness");
                 });
 
             modelBuilder.Entity("DataManagementApi.Models.Permission", b =>
@@ -744,6 +1125,13 @@ namespace DataManagementApi.Migrations
                     b.Navigation("RolePermissions");
 
                     b.Navigation("UserRoles");
+                });
+
+            modelBuilder.Entity("DataManagementApi.Models.ThesisPeriod", b =>
+                {
+                    b.Navigation("Theses");
+
+                    b.Navigation("ThesisPeriodBusiness");
                 });
 
             modelBuilder.Entity("DataManagementApi.Models.User", b =>

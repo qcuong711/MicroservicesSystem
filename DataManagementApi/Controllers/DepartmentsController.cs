@@ -1,7 +1,11 @@
 using DataManagementApi.Data;
 using DataManagementApi.Models;
+using DataManagementApi.Models.Dtos.Department;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using DepartmentReadDto = DataManagementApi.Models.Dtos.Department.DepartmentReadDto;
+using DepartmentUpdateDto = DataManagementApi.Models.Dtos.Department.DepartmentUpdateDto;
+using DepartmentCreateDto = DataManagementApi.Models.Dtos.Department.DepartmentCreateDto;
 
 namespace DataManagementApi.Controllers
 {
@@ -85,7 +89,7 @@ namespace DataManagementApi.Controllers
 
         // GET: api/Departments/5
         [HttpGet("{id:int}")]
-        public async Task<ActionResult<Department>> GetDepartment(int id)
+        public async Task<ActionResult<DepartmentReadDto>> GetDepartment(int id)
         {
             try
             {
@@ -99,7 +103,27 @@ namespace DataManagementApi.Controllers
                     return NotFound();
                 }
 
-                return department;
+                var dto = new DepartmentReadDto
+                {
+                    Id = department.Id,
+                    Name = department.Name,
+                    Code = department.Code,
+                    ParentDepartmentId = department.ParentDepartmentId,
+                    ParentDepartmentName = department.ParentDepartment?.Name,
+                    DeletedAt = department.DeletedAt,
+                    ChildDepartments = department.ChildDepartments
+                        .Where(cd => cd.DeletedAt == null)
+                        .Select(cd => new DepartmentChildDto
+                        {
+                            Id = cd.Id,
+                            Name = cd.Name,
+                            Code = cd.Code,
+                            ParentDepartmentId = cd.ParentDepartmentId,
+                            DeletedAt = cd.DeletedAt
+                        }).ToList()
+                };
+
+                return dto;
             }
             catch (Exception)
             {
@@ -163,14 +187,30 @@ namespace DataManagementApi.Controllers
 
         // POST: api/Departments
         [HttpPost]
-        public async Task<ActionResult<Department>> PostDepartment(Department department)
+        public async Task<ActionResult<DepartmentReadDto>> PostDepartment(DepartmentCreateDto departmentDto)
         {
             try
             {
+                var department = new Department
+                {
+                    Name = departmentDto.Name,
+                    Code = departmentDto.Code,
+                    ParentDepartmentId = departmentDto.ParentDepartmentId
+                };
                 _context.Departments.Add(department);
                 await _context.SaveChangesAsync();
 
-                return CreatedAtAction(nameof(GetDepartment), new { id = department.Id }, department);
+                var dto = new DepartmentReadDto
+                {
+                    Id = department.Id,
+                    Name = department.Name,
+                    Code = department.Code,
+                    ParentDepartmentId = department.ParentDepartmentId,
+                    DeletedAt = department.DeletedAt,
+                    ChildDepartments = new List<DepartmentChildDto>()
+                };
+
+                return CreatedAtAction(nameof(GetDepartment), new { id = department.Id }, dto);
             }
             catch (Exception)
             {

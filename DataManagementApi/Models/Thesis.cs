@@ -18,6 +18,10 @@ namespace DataManagementApi.Models
         public int? ExaminerId { get; set; }
         public Lecturer? Examiner { get; set; }
 
+        // Foreign key to ThesisPeriod
+        public int ThesisPeriodId { get; set; }
+        public ThesisPeriod? ThesisPeriod { get; set; }
+
         // Foreign key to AcademicYear
         public int AcademicYearId { get; set; }
         public AcademicYear? AcademicYear { get; set; }
@@ -31,5 +35,7 @@ namespace DataManagementApi.Models
         public DateTime CreatedAt { get; set; }
         public DateTime UpdatedAt { get; set; }
         public DateTime? DeletedAt { get; set; } // Soft delete
+
+        public ICollection<Business>? Business { get; set; }
     }
 }

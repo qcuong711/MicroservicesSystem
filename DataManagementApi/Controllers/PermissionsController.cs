@@ -1,5 +1,6 @@
 using DataManagementApi.Data;
 using DataManagementApi.Models;
+using DataManagementApi.Models.Dtos.Permission;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -24,21 +25,24 @@ namespace DataManagementApi.Controllers
 			{
 				var query = _context.Permissions
 									.Where(p => p.DeletedAt == null)
-									.Include(p => p.RolePermissions!)
-									.ThenInclude(rp => rp.Role)
 									.AsQueryable();
-
 				if (!string.IsNullOrEmpty(search))
 				{
 					query = query.Where(p => p.Name.Contains(search) || p.Module.Contains(search));
 				}
-				
 				var total = await query.CountAsync();
 				var permissions = await query
+					.OrderBy(p => p.Module).ThenBy(p => p.Name)
 					.Skip((page - 1) * limit)
 					.Take(limit)
+					.Select(p => new PermissionReadDto {
+						Id = p.Id,
+						Name = p.Name,
+						Module = p.Module,
+						Description = p.Description,
+						DeletedAt = p.DeletedAt
+					})
 					.ToListAsync();
-
 				return Ok(new {
 					data = permissions,
 					total,
@@ -59,18 +63,22 @@ namespace DataManagementApi.Controllers
 			try
 			{
 				var query = _context.Permissions.Where(p => p.DeletedAt != null).AsQueryable();
-
 				if (!string.IsNullOrEmpty(search))
 				{
 					query = query.Where(p => p.Name.Contains(search) || p.Module.Contains(search));
 				}
-
 				var total = await query.CountAsync();
 				var permissions = await query.OrderByDescending(p => p.DeletedAt)
 					.Skip((page - 1) * limit)
 					.Take(limit)
+					.Select(p => new PermissionReadDto {
+						Id = p.Id,
+						Name = p.Name,
+						Module = p.Module,
+						Description = p.Description,
+						DeletedAt = p.DeletedAt
+					})
 					.ToListAsync();
-				
 				return Ok(new {
 					data = permissions,
 					total,
@@ -108,18 +116,20 @@ namespace DataManagementApi.Controllers
 
 		// GET: api/permissions/5
 		[HttpGet("{id}")]
-		public async Task<ActionResult<Permission>> GetPermission(int id)
+		public async Task<ActionResult<PermissionReadDto>> GetPermission(int id)
 		{
 			try
 			{
-				var permission = await _context.Permissions.Include(p => p.RolePermissions!).ThenInclude(rp => rp.Role).FirstOrDefaultAsync(p => p.Id == id);
-
-				if (permission == null || permission.DeletedAt != null)
-				{
-					return NotFound();
-				}
-
-				return permission;
+				var p = await _context.Permissions.FirstOrDefaultAsync(x => x.Id == id && x.DeletedAt == null);
+				if (p == null) return NotFound();
+				var dto = new PermissionReadDto {
+					Id = p.Id,
+					Name = p.Name,
+					Module = p.Module,
+					Description = p.Description,
+					DeletedAt = p.DeletedAt
+				};
+				return Ok(dto);
 			}
 			catch (Exception ex)
 			{
@@ -129,65 +139,49 @@ namespace DataManagementApi.Controllers
 
 		// PUT: api/permissions/5
 		[HttpPut("{id}")]
-		public async Task<IActionResult> PutPermission(int id, UpdatePermissionData permissionData)
+		public async Task<IActionResult> PutPermission(int id, PermissionUpdateDto permissionDto)
 		{
-			if (id != permissionData.Id)
+			var permission = await _context.Permissions.FindAsync(id);
+			if (permission == null || permission.DeletedAt != null)
 			{
-				return BadRequest();
+				return NotFound();
 			}
-
-			try
-			{
-				var permission = await _context.Permissions.FindAsync(id);
-				if (permission == null)
-				{
-					return NotFound();
-				}
-
-				permission.Name = permissionData.Name;
-				permission.Description = permissionData.Description;
-				permission.Module = permissionData.Module;
-
-				_context.Entry(permission).State = EntityState.Modified;
-
-				await _context.SaveChangesAsync();
-			}
-			catch (DbUpdateConcurrencyException)
-			{
-				if (!PermissionExists(id))
-				{
-					return NotFound();
-				}
-				else
-				{
-					throw;
-				}
-			}
-			catch (Exception ex)
-			{
-				return StatusCode(500, $"Internal server error: {ex.Message}");
-			}
-
-			return NoContent();
+			permission.Name = permissionDto.Name;
+			permission.Module = permissionDto.Module;
+			permission.Description = permissionDto.Description;
+			await _context.SaveChangesAsync();
+			var dto = new PermissionReadDto {
+				Id = permission.Id,
+				Name = permission.Name,
+				Module = permission.Module,
+				Description = permission.Description,
+				DeletedAt = permission.DeletedAt
+			};
+			return Ok(dto);
 		}
 
 		// POST: api/permissions
 		[HttpPost]
-		public async Task<ActionResult<Permission>> PostPermission(CreatePermissionData permissionData)
+		public async Task<ActionResult<PermissionReadDto>> PostPermission(PermissionCreateDto permissionDto)
 		{
 			try
 			{
-				var permission = new Permission
-				{
-					Name = permissionData.Name,
-					Description = permissionData.Description,
-					Module = permissionData.Module
+				var permission = new Permission {
+					Name = permissionDto.Name,
+					Module = permissionDto.Module,
+					Description = permissionDto.Description,
+					DeletedAt = null
 				};
-
 				_context.Permissions.Add(permission);
 				await _context.SaveChangesAsync();
-
-				return CreatedAtAction("GetPermission", new { id = permission.Id }, permission);
+				var dto = new PermissionReadDto {
+					Id = permission.Id,
+					Name = permission.Name,
+					Module = permission.Module,
+					Description = permission.Description,
+					DeletedAt = permission.DeletedAt
+				};
+				return CreatedAtAction(nameof(GetPermission), new { id = permission.Id }, dto);
 			}
 			catch (Exception ex)
 			{
@@ -325,4 +319,4 @@ namespace DataManagementApi.Controllers
 			return _context.Permissions.Any(e => e.Id == id && e.DeletedAt == null);
 		}
 	}
-} 
+}
