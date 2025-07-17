@@ -215,6 +215,88 @@ namespace DataManagementApi.Services
                 await _context.Menus.AddRangeAsync(academicChildMenus);
                 await _context.SaveChangesAsync();
             }
+
+            // Seed RoleMenus (gán menu cho roles)
+            if (!await _context.RoleMenus.AnyAsync())
+            {
+                var adminRole = await _context.Roles.FirstAsync(r => r.Name == "Admin");
+                var teacherRole = await _context.Roles.FirstAsync(r => r.Name == "Teacher");
+                var studentRole = await _context.Roles.FirstAsync(r => r.Name == "Student");
+
+                var allMenus = await _context.Menus.ToListAsync();
+
+                // Admin có quyền truy cập tất cả menu
+                var adminRoleMenus = allMenus.Select(m => new RoleMenu
+                {
+                    RoleId = adminRole.Id,
+                    MenuId = m.Id
+                }).ToList();
+
+                // Teacher có quyền truy cập một số menu
+                var teacherMenus = allMenus.Where(m => 
+                    m.Name.Contains("Tổng quan") || 
+                    m.Name.Contains("Khóa luận") || 
+                    m.Name.Contains("Thực tập") || 
+                    m.Name.Contains("Sinh viên") ||
+                    m.Name.Contains("Phân tích") ||
+                    m.Name.Contains("Báo cáo") ||
+                    m.Name.Contains("Quản lý đào tạo") ||
+                    m.Name.Contains("Năm học") ||
+                    m.Name.Contains("Học kỳ") ||
+                    m.Name.Contains("Khoa & Chuyên ngành")
+                ).ToList();
+
+                var teacherRoleMenus = teacherMenus.Select(m => new RoleMenu
+                {
+                    RoleId = teacherRole.Id,
+                    MenuId = m.Id
+                }).ToList();
+
+                // Student có quyền truy cập một số menu cơ bản
+                var studentMenus = allMenus.Where(m => 
+                    m.Name.Contains("Tổng quan") || 
+                    m.Name.Contains("Khóa luận") || 
+                    m.Name.Contains("Thực tập") ||
+                    m.Name.Contains("Phân tích")
+                ).ToList();
+
+                var studentRoleMenus = studentMenus.Select(m => new RoleMenu
+                {
+                    RoleId = studentRole.Id,
+                    MenuId = m.Id
+                }).ToList();
+
+                // Thêm tất cả RoleMenus
+                await _context.RoleMenus.AddRangeAsync(adminRoleMenus);
+                await _context.RoleMenus.AddRangeAsync(teacherRoleMenus);
+                await _context.RoleMenus.AddRangeAsync(studentRoleMenus);
+                await _context.SaveChangesAsync();
+            }
+            
+            // Initialize system settings
+            await InitializeSystemSettings();
+        }
+        
+        private async Task InitializeSystemSettings()
+        {
+            // Initialize default system settings
+            var settingKey = "ALLOW_CROSS_DEPARTMENT_DATA_ACCESS";
+            var existingSetting = await _context.SystemSettings
+                .FirstOrDefaultAsync(s => s.SettingKey == settingKey);
+
+            if (existingSetting == null)
+            {
+                var defaultSetting = new SystemSettings
+                {
+                    SettingKey = settingKey,
+                    SettingValue = "false",
+                    Description = "Cho phép các phòng ban xem dữ liệu của phòng ban khác",
+                    CreatedAt = DateTime.UtcNow
+                };
+
+                _context.SystemSettings.Add(defaultSetting);
+                await _context.SaveChangesAsync();
+            }
         }
     }
 }

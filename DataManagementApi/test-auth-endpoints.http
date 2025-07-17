@@ -1,0 +1,34 @@
+### Test các endpoints auth mới
+
+# 1. Test endpoint lấy thông tin user hiện tại
+GET http://localhost:5100/api/users/me
+Authorization: Bearer YOUR_JWT_TOKEN_HERE
+
+###
+
+# 2. Test endpoint lấy menu của user hiện tại
+GET http://localhost:5100/api/users/me/menus
+Authorization: Bearer YOUR_JWT_TOKEN_HERE
+
+###
+
+# 3. Test endpoint users bình thường (có thể access mà không cần token)
+GET http://localhost:5100/api/users
+
+###
+
+# 4. Test endpoint roles
+GET http://localhost:5100/api/roles
+
+###
+
+# 5. Test endpoint menus
+GET http://localhost:5100/api/menus
+
+###
+
+# Hướng dẫn lấy JWT token:
+# 1. Đăng nhập vào frontend
+# 2. Mở Developer Tools -> Application -> Session Storage
+# 3. Tìm key chứa token từ NextAuth session
+# 4. Copy token và replace YOUR_JWT_TOKEN_HERE phía trên 

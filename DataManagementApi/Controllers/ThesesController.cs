@@ -1,8 +1,10 @@
 using DataManagementApi.Data;
 using DataManagementApi.Models;
 using DataManagementApi.Models.Dtos.Thesis;
+using DataManagementApi.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Authorization;
 
 namespace DataManagementApi.Controllers
 {
@@ -11,14 +13,18 @@ namespace DataManagementApi.Controllers
     public class ThesesController : ControllerBase
     {
         private readonly ApplicationDbContext _context;
+        private readonly DepartmentAccessService _departmentAccessService;
 
-        public ThesesController(ApplicationDbContext context)
+        public ThesesController(ApplicationDbContext context, DepartmentAccessService departmentAccessService)
         {
             _context = context;
+            _departmentAccessService = departmentAccessService;
         }
+
 
         // GET: api/Theses
         [HttpGet]
+        [Authorize]
         public async Task<ActionResult<object>> GetTheses(
             [FromQuery] int page = 1,
             [FromQuery] int limit = 10,
@@ -28,12 +34,19 @@ namespace DataManagementApi.Controllers
         {
             try
             {
+                // Lấy danh sách phòng ban có thể truy cập
+                var accessibleDepartmentIds = await _departmentAccessService.GetAccessibleDepartmentIds(User);
+                
                 var query = _context.Theses
                     .Where(t => t.DeletedAt == null)
                     .Include(t => t.Student)
+                    .ThenInclude(s => s.Department)
                     .Include(t => t.Supervisor)
+                    .ThenInclude(s => s.Department)
                     .Include(t => t.Examiner)
                     .Include(t => t.ThesisPeriod)
+                    .Where(t => (!t.Student.DepartmentId.HasValue || accessibleDepartmentIds.Contains(t.Student.DepartmentId.Value)) ||
+                               (!t.Supervisor.DepartmentId.HasValue || accessibleDepartmentIds.Contains(t.Supervisor.DepartmentId.Value)))
                     .AsQueryable();
 
                 if (!string.IsNullOrWhiteSpace(search))

@@ -1,8 +1,10 @@
 using DataManagementApi.Data;
 using DataManagementApi.Models;
 using DataManagementApi.Models.Dtos.Student;
+using DataManagementApi.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Authorization;
 
 
 namespace DataManagementApi.Controllers
@@ -12,21 +14,29 @@ namespace DataManagementApi.Controllers
     public class StudentsController : ControllerBase
     {
         private readonly ApplicationDbContext _context;
+        private readonly DepartmentAccessService _departmentAccessService;
 
-        public StudentsController(ApplicationDbContext context)
+        public StudentsController(ApplicationDbContext context, DepartmentAccessService departmentAccessService)
         {
             _context = context;
+            _departmentAccessService = departmentAccessService;
         }
 
         // GET: api/Students
         [HttpGet]
+        [Authorize]
         public async Task<ActionResult<object>> GetStudents([FromQuery] int page = 1, [FromQuery] int limit = 10, [FromQuery] string search = "")
         {
             try
             {
+                // Lấy danh sách phòng ban có thể truy cập
+                var accessibleDepartmentIds = await _departmentAccessService.GetAccessibleDepartmentIds(User);
+                
                 IQueryable<Student> query = _context.Students
                     .Include(s => s.Department)
-                    .Where(s => s.DeletedAt == null);
+                    .Where(s => s.DeletedAt == null)
+                    .Where(s => !s.DepartmentId.HasValue || accessibleDepartmentIds.Contains(s.DepartmentId.Value));
+                
                 if (!string.IsNullOrEmpty(search))
                 {
                     query = query.Where(s => s.FullName.Contains(search) || s.StudentCode.Contains(search) || s.Email.Contains(search));

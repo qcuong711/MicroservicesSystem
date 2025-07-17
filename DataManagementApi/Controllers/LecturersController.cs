@@ -1,8 +1,10 @@
 using DataManagementApi.Data;
 using DataManagementApi.Models;
 using DataManagementApi.Models.Dtos.Lecturer;
+using DataManagementApi.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Authorization;
 
 namespace DataManagementApi.Controllers
 {
@@ -11,21 +13,28 @@ namespace DataManagementApi.Controllers
     public class LecturersController : ControllerBase
     {
         private readonly ApplicationDbContext _context;
+        private readonly DepartmentAccessService _departmentAccessService;
 
-        public LecturersController(ApplicationDbContext context)
+        public LecturersController(ApplicationDbContext context, DepartmentAccessService departmentAccessService)
         {
             _context = context;
+            _departmentAccessService = departmentAccessService;
         }
 
         // GET: api/Lecturers
         [HttpGet]
+        [Authorize]
         public async Task<ActionResult<object>> GetLecturers([FromQuery] int page = 1, [FromQuery] int limit = 10, [FromQuery] string search = "")
         {
             try
             {
+                // Lấy danh sách phòng ban có thể truy cập
+                var accessibleDepartmentIds = await _departmentAccessService.GetAccessibleDepartmentIds(User);
+                
                 IQueryable<Lecturer> query = _context.Lecturers
                     .Include(l => l.Department)
-                    .Where(l => l.DeletedAt == null);
+                    .Where(l => l.DeletedAt == null)
+                    .Where(l => !l.DepartmentId.HasValue || accessibleDepartmentIds.Contains(l.DepartmentId.Value));
 
                 // Apply search filter
                 if (!string.IsNullOrEmpty(search))

@@ -29,6 +29,7 @@ namespace DataManagementApi.Data
         public DbSet<UserRole> UserRoles { get; set; }
         public DbSet<RolePermission> RolePermissions { get; set; }
         public DbSet<RoleMenu> RoleMenus { get; set; }
+        public DbSet<SystemSettings> SystemSettings { get; set; }
         // -----------------------------------------
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)

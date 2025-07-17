@@ -4,6 +4,8 @@ using DataManagementApi.Models.Dtos.User;
 using DataManagementApi.Models.Dtos.UserRole;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Authorization;
+using System.Security.Claims;
 
 namespace DataManagementApi.Controllers
 {
@@ -529,6 +531,164 @@ namespace DataManagementApi.Controllers
             await _context.SaveChangesAsync();
 
             return Ok(new { message = "Gán vai trò thành công." });
+        }
+
+        // GET: api/users/me
+        [HttpGet("me")]
+        [Authorize]
+        public async Task<ActionResult<UserReadDto>> GetCurrentUser()
+        {
+            try
+            {
+                // Lấy Keycloak User ID từ JWT token
+                var keycloakUserId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                
+                if (string.IsNullOrEmpty(keycloakUserId))
+                {
+                    return Unauthorized(new { message = "Token không hợp lệ hoặc không chứa thông tin user." });
+                }
+
+                // Tìm user trong database theo KeycloakUserId
+                var user = await _context.Users
+                    .Where(u => u.KeycloakUserId == keycloakUserId && u.DeletedAt == null)
+                    .Include(u => u.UserRoles)
+                    .ThenInclude(ur => ur.Role)
+                    .Select(u => new UserReadDto
+                    {
+                        Id = u.Id,
+                        KeycloakUserId = u.KeycloakUserId,
+                        Name = u.Name,
+                        Email = u.Email,
+                        AvatarUrl = u.AvatarUrl,
+                        IsActive = u.IsActive,
+                        CreatedAt = u.CreatedAt,
+                        UpdatedAt = u.UpdatedAt,
+                        DeletedAt = u.DeletedAt,
+                        UserRoles = u.UserRoles.Select(ur => ur.Role.Name).ToList()
+                    })
+                    .FirstOrDefaultAsync();
+
+                if (user == null)
+                {
+                    return NotFound(new { message = "Không tìm thấy thông tin user trong hệ thống." });
+                }
+
+                return Ok(user);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, $"Lỗi truy xuất dữ liệu: {ex.Message}");
+            }
+        }
+
+        // GET: api/users/me/menus
+        [HttpGet("me/menus")]
+        [Authorize]
+        public async Task<ActionResult<IEnumerable<object>>> GetCurrentUserMenus()
+        {
+            try
+            {
+                // Lấy Keycloak User ID từ JWT token
+                var keycloakUserId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                
+                if (string.IsNullOrEmpty(keycloakUserId))
+                {
+                    return Unauthorized(new { message = "Token không hợp lệ hoặc không chứa thông tin user." });
+                }
+
+                // Tìm user trong database theo KeycloakUserId
+                var user = await _context.Users
+                    .Where(u => u.KeycloakUserId == keycloakUserId && u.DeletedAt == null)
+                    .Include(u => u.UserRoles)
+                    .ThenInclude(ur => ur.Role)
+                    .ThenInclude(r => r.RoleMenus)
+                    .ThenInclude(rm => rm.Menu)
+                    .FirstOrDefaultAsync();
+
+                if (user == null)
+                {
+                    return NotFound(new { message = "Không tìm thấy thông tin user trong hệ thống." });
+                }
+
+                // Lấy tất cả menu mà user có quyền truy cập thông qua roles
+                var accessibleMenuIds = user.UserRoles
+                    .SelectMany(ur => ur.Role.RoleMenus)
+                    .Select(rm => rm.MenuId)
+                    .Distinct()
+                    .ToList();
+
+                // Nếu user không có quyền truy cập menu nào, trả về empty array
+                if (!accessibleMenuIds.Any())
+                {
+                    return Ok(new List<object>());
+                }
+
+                // Lấy tất cả menu mà user có quyền truy cập (bao gồm cả parent menu)
+                var accessibleMenus = await _context.Menus
+                    .Where(m => m.DeletedAt == null && accessibleMenuIds.Contains(m.Id))
+                    .ToListAsync();
+
+                // Thêm parent menu nếu child menu được truy cập
+                var parentMenuIds = accessibleMenus
+                    .Where(m => m.ParentId.HasValue)
+                    .Select(m => m.ParentId.Value)
+                    .Distinct()
+                    .ToList();
+
+                var parentMenus = await _context.Menus
+                    .Where(m => m.DeletedAt == null && parentMenuIds.Contains(m.Id))
+                    .ToListAsync();
+
+                // Merge tất cả menu
+                var allMenus = accessibleMenus.Concat(parentMenus).Distinct().ToList();
+
+                // Tạo cấu trúc hierarchical
+                var rootMenus = allMenus
+                    .Where(m => m.ParentId == null)
+                    .OrderBy(m => m.DisplayOrder)
+                    .Select(m => new
+                    {
+                        m.Id,
+                        m.Name,
+                        m.Path,
+                        m.Icon,
+                        m.DisplayOrder,
+                        m.ParentId,
+                        ChildMenus = BuildChildMenus(m, allMenus, accessibleMenuIds)
+                    })
+                    .ToList();
+
+                return Ok(rootMenus);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, $"Lỗi truy xuất dữ liệu: {ex.Message}");
+            }
+        }
+
+        private List<object> BuildChildMenus(Menu parentMenu, List<Menu> allMenus, List<int> accessibleMenuIds)
+        {
+            return allMenus
+                .Where(m => m.ParentId == parentMenu.Id && (accessibleMenuIds.Contains(m.Id) || HasAccessibleChildren(m, allMenus, accessibleMenuIds)))
+                .OrderBy(m => m.DisplayOrder)
+                .Select(m => new
+                {
+                    m.Id,
+                    m.Name,
+                    m.Path,
+                    m.Icon,
+                    m.DisplayOrder,
+                    m.ParentId,
+                    ChildMenus = BuildChildMenus(m, allMenus, accessibleMenuIds)
+                })
+                .Cast<object>()
+                .ToList();
+        }
+
+        private bool HasAccessibleChildren(Menu menu, List<Menu> allMenus, List<int> accessibleMenuIds)
+        {
+            var childMenus = allMenus.Where(m => m.ParentId == menu.Id);
+            return childMenus.Any(child => accessibleMenuIds.Contains(child.Id) || HasAccessibleChildren(child, allMenus, accessibleMenuIds));
         }
 
         private bool UserExists(int id)

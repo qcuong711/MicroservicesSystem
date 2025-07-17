@@ -39,6 +39,7 @@ builder.Services.AddCors(options =>
 
 // Register DataSeeder
 builder.Services.AddScoped<DataSeeder>();
+builder.Services.AddScoped<DepartmentAccessService>();
 
 builder.Services.AddControllers()
 	.AddJsonOptions(options =>
@@ -66,47 +67,85 @@ builder.Services.AddAuthentication(options =>
         options.RequireHttpsMetadata = false;
     }
 
+    var validateAudience = builder.Configuration.GetValue<bool>("Jwt:ValidateAudience", true);
+    Console.WriteLine($"JWT Debug: ValidateAudience setting: {validateAudience}");
+    
     options.TokenValidationParameters = new TokenValidationParameters
     {
         ValidateIssuer = true,
-        ValidateAudience = true,
+        ValidateAudience = validateAudience,
         ValidateLifetime = true,
         ValidateIssuerSigningKey = true,
         ValidIssuer = builder.Configuration["Jwt:Authority"],
-        ValidAudience = builder.Configuration["Jwt:Audience"]
+        ValidAudience = builder.Configuration["Jwt:Audience"],
+        // Cho phép multiple audiences để support cả Kong Gateway và Keycloak default
+        ValidAudiences = new[]
+        {
+            builder.Configuration["Jwt:Audience"], // kong-gateway-client
+            "account", // Keycloak default audience
+            "realm-management" // Keycloak realm management
+        }
     };
     
     // --- ĐÂY LÀ NƠI XỬ LÝ LOGIC ---
     options.Events = new JwtBearerEvents
     {
+        OnMessageReceived = context =>
+        {
+            var token = context.Request.Headers["Authorization"].FirstOrDefault();
+            Console.WriteLine($"JWT Debug: Authorization header: {(string.IsNullOrEmpty(token) ? "MISSING" : "PRESENT")}");
+            return Task.CompletedTask;
+        },
         OnTokenValidated = async context =>
         {
+            Console.WriteLine("JWT Debug: Token validated successfully");
+            
+            // Debug JWT token claims
+            var claimsPrincipal = context.Principal;
+            if (claimsPrincipal != null)
+            {
+                Console.WriteLine("JWT Debug: All claims in token:");
+                foreach (var claim in claimsPrincipal.Claims)
+                {
+                    Console.WriteLine($"  {claim.Type}: {claim.Value}");
+                }
+            }
+            
             // Lấy các service cần thiết từ Dependency Injection Container
             var dbContext = context.HttpContext.RequestServices.GetRequiredService<ApplicationDbContext>();
             
             // Lấy thông tin người dùng từ token đã được xác thực
-            var claimsPrincipal = context.Principal;
-            if (claimsPrincipal == null) return;
+            if (claimsPrincipal == null) 
+            {
+                Console.WriteLine("JWT Debug: ClaimsPrincipal is null");
+                return;
+            }
 
             // `sub` claim là ID duy nhất của user bên Keycloak
             var keycloakUserId = claimsPrincipal.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            Console.WriteLine($"JWT Debug: Keycloak User ID: {keycloakUserId}");
+            
             if (string.IsNullOrEmpty(keycloakUserId))
             {
+                Console.WriteLine("JWT Debug: Token không chứa Keycloak User ID (sub)");
                 context.Fail("Token không chứa Keycloak User ID (sub).");
                 return;
             }
 
-            // Kiểm tra xem user đã tồn tại trong DB của chúng ta chưa
-            var user = await dbContext.Users.FirstOrDefaultAsync(u => u.KeycloakUserId == keycloakUserId);
+            // Lấy thông tin từ JWT token
+            var email = claimsPrincipal.FindFirst(ClaimTypes.Email)?.Value ?? string.Empty;
+            var name = claimsPrincipal.FindFirst("name")?.Value ?? // Thử lấy claim "name"
+                       claimsPrincipal.FindFirst("preferred_username")?.Value ?? // Hoặc "preferred_username"
+                       "New User"; // Tên mặc định
 
-            // Nếu user chưa tồn tại, tạo mới (Just-in-Time Provisioning)
+            // Kiểm tra xem user đã tồn tại trong DB của chúng ta chưa (theo KeycloakUserId hoặc email)
+            var user = await dbContext.Users.FirstOrDefaultAsync(u => 
+                u.KeycloakUserId == keycloakUserId || 
+                (!string.IsNullOrEmpty(email) && u.Email == email));
+
             if (user == null)
             {
-                var email = claimsPrincipal.FindFirst(ClaimTypes.Email)?.Value ?? string.Empty;
-                var name = claimsPrincipal.FindFirst("name")?.Value ?? // Thử lấy claim "name"
-                           claimsPrincipal.FindFirst("preferred_username")?.Value ?? // Hoặc "preferred_username"
-                           "New User"; // Tên mặc định
-
+                // Nếu user chưa tồn tại, tạo mới (Just-in-Time Provisioning)
                 var newUser = new User
                 {
                     KeycloakUserId = keycloakUserId,
@@ -119,7 +158,45 @@ builder.Services.AddAuthentication(options =>
 
                 dbContext.Users.Add(newUser);
                 await dbContext.SaveChangesAsync();
+
+                // Gán role mặc định "Student" cho user mới
+                var studentRole = await dbContext.Roles.FirstOrDefaultAsync(r => r.Name == "Student");
+                if (studentRole != null)
+                {
+                    var userRole = new UserRole
+                    {
+                        UserId = newUser.Id,
+                        RoleId = studentRole.Id
+                    };
+                    dbContext.UserRoles.Add(userRole);
+                    await dbContext.SaveChangesAsync();
+                    Console.WriteLine($"JWT Debug: Gán role Student cho user mới - UserId: {newUser.Id}, RoleId: {studentRole.Id}");
+                }
+
+                Console.WriteLine($"JWT Debug: Tạo user mới - Email: {email}, KeycloakUserId: {keycloakUserId}");
             }
+            else if (string.IsNullOrEmpty(user.KeycloakUserId))
+            {
+                // Nếu user đã tồn tại nhưng chưa có KeycloakUserId, cập nhật nó
+                user.KeycloakUserId = keycloakUserId;
+                user.Name = name; // Cập nhật name nếu cần
+                user.UpdatedAt = DateTime.UtcNow;
+                await dbContext.SaveChangesAsync();
+                Console.WriteLine($"JWT Debug: Cập nhật KeycloakUserId cho user hiện tại - Email: {email}, KeycloakUserId: {keycloakUserId}");
+            }
+            else
+            {
+                Console.WriteLine($"JWT Debug: User đã tồn tại - Email: {email}, KeycloakUserId: {keycloakUserId}");
+            }
+        },
+        OnAuthenticationFailed = context =>
+        {
+            Console.WriteLine($"JWT Debug: Authentication failed: {context.Exception.Message}");
+            if (context.Exception.Message.Contains("Audience validation failed"))
+            {
+                Console.WriteLine("JWT Debug: This is an audience validation error. Check Keycloak client configuration.");
+            }
+            return Task.CompletedTask;
         }
     };
     // --- KẾT THÚC LOGIC ---
