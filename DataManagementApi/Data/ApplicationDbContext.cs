@@ -30,6 +30,9 @@ namespace DataManagementApi.Data
         public DbSet<RolePermission> RolePermissions { get; set; }
         public DbSet<RoleMenu> RoleMenus { get; set; }
         public DbSet<SystemSettings> SystemSettings { get; set; }
+        
+        // --- Matrix-based Permission System ---
+        public DbSet<RoleModulePermission> RoleModulePermissions { get; set; }
         // -----------------------------------------
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -95,6 +98,17 @@ namespace DataManagementApi.Data
                 .HasOne(rm => rm.Menu)
                 .WithMany(m => m.RoleMenus)
                 .HasForeignKey(rm => rm.MenuId);
+
+            // RoleModulePermission: New matrix-based permission system
+            modelBuilder.Entity<RoleModulePermission>()
+                .HasOne(rmp => rmp.Role)
+                .WithMany(r => r.RoleModulePermissions)
+                .HasForeignKey(rmp => rmp.RoleId);
+            
+            // Unique constraint: One permission record per role per module
+            modelBuilder.Entity<RoleModulePermission>()
+                .HasIndex(rmp => new { rmp.RoleId, rmp.ModuleName })
+                .IsUnique();
 
             // Cấu hình cho InternshipPeriod và ThesisPeriod
             modelBuilder.Entity<InternshipPeriod>()

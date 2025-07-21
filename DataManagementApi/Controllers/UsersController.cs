@@ -601,8 +601,7 @@ namespace DataManagementApi.Controllers
                     .Where(u => u.KeycloakUserId == keycloakUserId && u.DeletedAt == null)
                     .Include(u => u.UserRoles)
                     .ThenInclude(ur => ur.Role)
-                    .ThenInclude(r => r.RoleMenus)
-                    .ThenInclude(rm => rm.Menu)
+                    .ThenInclude(r => r.RoleModulePermissions)
                     .FirstOrDefaultAsync();
 
                 if (user == null)
@@ -610,23 +609,33 @@ namespace DataManagementApi.Controllers
                     return NotFound(new { message = "Không tìm thấy thông tin user trong hệ thống." });
                 }
 
-                // Lấy tất cả menu mà user có quyền truy cập thông qua roles
-                var accessibleMenuIds = user.UserRoles
-                    .SelectMany(ur => ur.Role.RoleMenus)
-                    .Select(rm => rm.MenuId)
+                // Lấy tất cả modules mà user có quyền CanRead = true thông qua roles
+                var userModulesWithReadAccess = user.UserRoles
+                    .SelectMany(ur => ur.Role.RoleModulePermissions)
+                    .Where(rmp => rmp.CanRead && rmp.DeletedAt == null)
+                    .Select(rmp => rmp.ModuleName)
                     .Distinct()
                     .ToList();
 
-                // Nếu user không có quyền truy cập menu nào, trả về empty array
-                if (!accessibleMenuIds.Any())
+                // Nếu user không có quyền đọc module nào, trả về empty array
+                if (!userModulesWithReadAccess.Any())
                 {
                     return Ok(new List<object>());
                 }
 
-                // Lấy tất cả menu mà user có quyền truy cập (bao gồm cả parent menu)
-                var accessibleMenus = await _context.Menus
-                    .Where(m => m.DeletedAt == null && accessibleMenuIds.Contains(m.Id))
+                // Sử dụng ModuleMenuMappingService để lấy accessible menu paths
+                var accessibleMenuPaths = Services.ModuleMenuMappingService.GetAccessibleMenuPaths(userModulesWithReadAccess);
+
+                // Lấy tất cả menu từ database
+                var allMenus = await _context.Menus
+                    .Where(m => m.DeletedAt == null)
+                    .OrderBy(m => m.DisplayOrder)
                     .ToListAsync();
+
+                // Filter menus theo accessible paths
+                var accessibleMenus = allMenus
+                    .Where(m => accessibleMenuPaths.Contains(m.Path))
+                    .ToList();
 
                 // Thêm parent menu nếu child menu được truy cập
                 var parentMenuIds = accessibleMenus
@@ -635,15 +644,15 @@ namespace DataManagementApi.Controllers
                     .Distinct()
                     .ToList();
 
-                var parentMenus = await _context.Menus
-                    .Where(m => m.DeletedAt == null && parentMenuIds.Contains(m.Id))
-                    .ToListAsync();
+                var parentMenus = allMenus
+                    .Where(m => parentMenuIds.Contains(m.Id))
+                    .ToList();
 
-                // Merge tất cả menu
-                var allMenus = accessibleMenus.Concat(parentMenus).Distinct().ToList();
+                // Merge tất cả menu (accessible + parents)
+                var finalMenus = accessibleMenus.Concat(parentMenus).Distinct().ToList();
 
                 // Tạo cấu trúc hierarchical
-                var rootMenus = allMenus
+                var rootMenus = finalMenus
                     .Where(m => m.ParentId == null)
                     .OrderBy(m => m.DisplayOrder)
                     .Select(m => new
@@ -654,7 +663,7 @@ namespace DataManagementApi.Controllers
                         m.Icon,
                         m.DisplayOrder,
                         m.ParentId,
-                        ChildMenus = BuildChildMenus(m, allMenus, accessibleMenuIds)
+                        ChildMenus = BuildChildMenusMatrix(m, finalMenus, accessibleMenuPaths)
                     })
                     .ToList();
 
@@ -666,6 +675,33 @@ namespace DataManagementApi.Controllers
             }
         }
 
+        // Matrix permission version
+        private List<object> BuildChildMenusMatrix(Menu parentMenu, List<Menu> allMenus, List<string> accessibleMenuPaths)
+        {
+            return allMenus
+                .Where(m => m.ParentId == parentMenu.Id && (accessibleMenuPaths.Contains(m.Path) || HasAccessibleChildrenMatrix(m, allMenus, accessibleMenuPaths)))
+                .OrderBy(m => m.DisplayOrder)
+                .Select(m => new
+                {
+                    m.Id,
+                    m.Name,
+                    m.Path,
+                    m.Icon,
+                    m.DisplayOrder,
+                    m.ParentId,
+                    ChildMenus = BuildChildMenusMatrix(m, allMenus, accessibleMenuPaths)
+                })
+                .Cast<object>()
+                .ToList();
+        }
+
+        private bool HasAccessibleChildrenMatrix(Menu menu, List<Menu> allMenus, List<string> accessibleMenuPaths)
+        {
+            return allMenus.Any(m => m.ParentId == menu.Id && 
+                (accessibleMenuPaths.Contains(m.Path) || HasAccessibleChildrenMatrix(m, allMenus, accessibleMenuPaths)));
+        }
+
+        // Old system (keep for backward compatibility)
         private List<object> BuildChildMenus(Menu parentMenu, List<Menu> allMenus, List<int> accessibleMenuIds)
         {
             return allMenus

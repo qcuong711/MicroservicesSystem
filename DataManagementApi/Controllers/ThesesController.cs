@@ -2,6 +2,7 @@ using DataManagementApi.Data;
 using DataManagementApi.Models;
 using DataManagementApi.Models.Dtos.Thesis;
 using DataManagementApi.Services;
+using DataManagementApi.Attributes;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authorization;
@@ -100,6 +101,7 @@ namespace DataManagementApi.Controllers
 
         // GET: api/Theses/5
         [HttpGet("{id}")]
+        [Authorize]
         public async Task<ActionResult<ThesisReadDto>> GetThesis(int id)
         {
             try
@@ -147,6 +149,7 @@ namespace DataManagementApi.Controllers
 
         // PUT: api/Theses/5
         [HttpPut("{id}")]
+        [Authorize]
         public async Task<IActionResult> PutThesis(int id, ThesisUpdateDto thesisDto)
         {
             try
@@ -239,6 +242,7 @@ namespace DataManagementApi.Controllers
 
         // POST: api/Theses
         [HttpPost]
+        [Authorize]
         public async Task<ActionResult<ThesisReadDto>> PostThesis(ThesisCreateDto thesisDto)
         {
             try
@@ -331,6 +335,7 @@ namespace DataManagementApi.Controllers
 
         // SOFT DELETE: api/Theses/soft-delete/5
         [HttpPost("soft-delete/{id}")]
+        [Authorize]
         public async Task<IActionResult> SoftDeleteThesis(int id)
         {
             try
@@ -352,6 +357,7 @@ namespace DataManagementApi.Controllers
 
         // PERMANENT DELETE: api/Theses/permanent-delete/5
         [HttpDelete("permanent-delete/{id}")]
+        [Authorize]
         public async Task<IActionResult> PermanentDeleteThesis(int id)
         {
             try
@@ -373,6 +379,7 @@ namespace DataManagementApi.Controllers
 
         // RESTORE: api/Theses/restore/5
         [HttpPost("restore/{id}")]
+        [Authorize]
         public async Task<IActionResult> RestoreThesis(int id)
         {
             try
@@ -394,6 +401,7 @@ namespace DataManagementApi.Controllers
 
         // GET DELETED: api/Theses/deleted
         [HttpGet("deleted")]
+        [Authorize]
         public async Task<ActionResult<object>> GetDeletedTheses([FromQuery] int page = 1, [FromQuery] int limit = 10, [FromQuery] string search = "")
         {
             try
@@ -446,6 +454,7 @@ namespace DataManagementApi.Controllers
 
         // BULK SOFT DELETE
         [HttpPost("bulk-soft-delete")]
+        [Authorize]
         public async Task<IActionResult> BulkSoftDelete([FromBody] List<int> ids)
         {
             if (ids == null || !ids.Any()) return BadRequest("Danh sách ID không hợp lệ.");
@@ -472,6 +481,7 @@ namespace DataManagementApi.Controllers
 
         // BULK RESTORE
         [HttpPost("bulk-restore")]
+        [Authorize]
         public async Task<IActionResult> BulkRestore([FromBody] List<int> ids)
         {
             if (ids == null || !ids.Any()) return BadRequest("Danh sách ID không hợp lệ.");
@@ -493,6 +503,7 @@ namespace DataManagementApi.Controllers
         
         // BULK PERMANENT DELETE
         [HttpPost("bulk-permanent-delete")]
+        [Authorize]
         public async Task<IActionResult> BulkPermanentDelete([FromBody] List<int> ids)
         {
             if (ids == null || !ids.Any()) return BadRequest("Danh sách ID không hợp lệ.");

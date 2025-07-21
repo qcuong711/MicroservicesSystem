@@ -10,5 +10,8 @@ namespace DataManagementApi.Models
         public ICollection<UserRole> UserRoles { get; set; } = new List<UserRole>();
         public ICollection<RolePermission> RolePermissions { get; set; } = new List<RolePermission>();
         public ICollection<RoleMenu> RoleMenus { get; set; } = new List<RoleMenu>();
+        
+        // New matrix-based permission system
+        public ICollection<RoleModulePermission> RoleModulePermissions { get; set; } = new List<RoleModulePermission>();
     }
 } 

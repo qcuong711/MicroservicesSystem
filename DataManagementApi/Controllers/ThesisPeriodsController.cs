@@ -1,6 +1,7 @@
 using DataManagementApi.Data;
 using DataManagementApi.Models;
 using DataManagementApi.Models.Dtos.ThesisPeriod;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -19,6 +20,7 @@ namespace DataManagementApi.Controllers
 
         // GET: api/thesis-periods
         [HttpGet]
+        [Authorize]
         public async Task<ActionResult<object>> GetThesisPeriods([FromQuery] int page = 1, [FromQuery] int limit = 10, [FromQuery] string search = "")
         {
             var query = _context.ThesisPeriods
@@ -79,6 +81,7 @@ namespace DataManagementApi.Controllers
 
         // GET: api/thesis-periods/{id}
         [HttpGet("{id}")]
+        [Authorize]
         public async Task<ActionResult<ThesisPeriodReadDto>> GetThesisPeriod(int id)
         {
             var period = await _context.ThesisPeriods
@@ -100,6 +103,7 @@ namespace DataManagementApi.Controllers
 
         // POST: api/thesis-periods
         [HttpPost]
+        [Authorize]
         public async Task<ActionResult<ThesisPeriodReadDto>> PostThesisPeriod(ThesisPeriodCreateDto dto)
         {
             if (!ModelState.IsValid) return BadRequest(ModelState);
@@ -130,6 +134,7 @@ namespace DataManagementApi.Controllers
 
         // PUT: api/thesis-periods/{id}
         [HttpPut("{id}")]
+        [Authorize]
         public async Task<IActionResult> PutThesisPeriod(int id, ThesisPeriodUpdateDto dto)
         {
             var period = await _context.ThesisPeriods.FindAsync(id);
@@ -156,6 +161,7 @@ namespace DataManagementApi.Controllers
 
         // SOFT DELETE: api/thesis-periods/soft-delete/{id}
         [HttpPost("soft-delete/{id}")]
+        [Authorize]
         public async Task<IActionResult> SoftDeleteThesisPeriod(int id)
         {
             var period = await _context.ThesisPeriods.FindAsync(id);
@@ -167,6 +173,7 @@ namespace DataManagementApi.Controllers
 
         // PERMANENT DELETE: api/thesis-periods/permanent-delete/{id}
         [HttpDelete("permanent-delete/{id}")]
+        [Authorize]
         public async Task<IActionResult> PermanentDeleteThesisPeriod(int id)
         {
             var period = await _context.ThesisPeriods.IgnoreQueryFilters().FirstOrDefaultAsync(p => p.Id == id);
@@ -178,6 +185,7 @@ namespace DataManagementApi.Controllers
 
         // POST: api/thesis-periods/bulk-restore
         [HttpPost("bulk-restore")]
+        [Authorize]
         public async Task<IActionResult> BulkRestore([FromBody] List<int> ids)
         {
             if (ids == null || !ids.Any()) return BadRequest("No ids provided.");

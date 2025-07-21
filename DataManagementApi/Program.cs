@@ -1,7 +1,9 @@
 using DataManagementApi.Data;
 using DataManagementApi.Services;
+using DataManagementApi.Authorization;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.IdentityModel.Tokens;
 using System.Security.Claims;
 using DataManagementApi.Models;
@@ -40,6 +42,29 @@ builder.Services.AddCors(options =>
 // Register DataSeeder
 builder.Services.AddScoped<DataSeeder>();
 builder.Services.AddScoped<DepartmentAccessService>();
+builder.Services.AddScoped<MatrixPermissionSeeder>();
+builder.Services.AddScoped<MatrixPermissionService>();
+builder.Services.AddScoped<CachedMatrixPermissionService>(); // Add cached service
+builder.Services.AddScoped<MenuPathMigrationService>();
+builder.Services.AddScoped<AdminUserSeeder>();
+
+// Add Memory Cache for performance
+builder.Services.AddMemoryCache();
+
+// Add Authorization with Global Matrix Policy
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy("GlobalMatrixPolicy", policy =>
+        policy.Requirements.Add(new GlobalMatrixRequirement()));
+    
+    options.DefaultPolicy = new AuthorizationPolicyBuilder()
+        .RequireAuthenticatedUser()
+        .AddRequirements(new GlobalMatrixRequirement())
+        .Build();
+});
+
+// Register Global Authorization Handler
+builder.Services.AddScoped<IAuthorizationHandler, GlobalMatrixAuthorizationHandler>();
 
 builder.Services.AddControllers()
 	.AddJsonOptions(options =>
@@ -229,6 +254,19 @@ if (app.Environment.IsDevelopment())
     using var scope = app.Services.CreateScope();
     var seeder = scope.ServiceProvider.GetRequiredService<DataSeeder>();
     await seeder.SeedAsync();
+    
+    // Migrate menu paths (remove /admin prefix)
+    var menuMigrator = scope.ServiceProvider.GetRequiredService<MenuPathMigrationService>();
+    await menuMigrator.MigrateMenuPathsAsync();
+    
+    // Seed matrix permissions
+    var matrixSeeder = scope.ServiceProvider.GetRequiredService<MatrixPermissionSeeder>();
+    await matrixSeeder.SeedMatrixPermissionsAsync();
+    
+    // Seed admin user and debug users
+    var adminSeeder = scope.ServiceProvider.GetRequiredService<AdminUserSeeder>();
+    await adminSeeder.SeedDefaultAdminAsync();
+    await adminSeeder.ListAllUsersWithRolesAsync();
 }
 
 app.Run();
