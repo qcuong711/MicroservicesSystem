@@ -1,5 +1,6 @@
 using DataManagementApi.Data;
 using DataManagementApi.Models;
+using DataManagementApi.Extensions;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
 
@@ -19,7 +20,9 @@ namespace DataManagementApi.Services
         /// </summary>
         public async Task<List<int>> GetAccessibleDepartmentIds(ClaimsPrincipal userClaims)
         {
-            var keycloakUserId = userClaims.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            // Sử dụng extension method để lấy Keycloak User ID
+            var keycloakUserId = userClaims.GetKeycloakUserId();
+            
             if (string.IsNullOrEmpty(keycloakUserId))
             {
                 return new List<int>();

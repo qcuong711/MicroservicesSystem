@@ -64,7 +64,6 @@ namespace DataManagementApi.Attributes
             catch (Exception ex)
             {
                 // Log error và trả về 403
-                Console.WriteLine($"MatrixPermissionAttribute Error: {ex.Message}");
                 context.Result = new ForbidResult();
                 return;
             }

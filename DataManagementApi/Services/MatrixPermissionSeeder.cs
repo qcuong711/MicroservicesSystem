@@ -28,13 +28,7 @@ namespace DataManagementApi.Services
                 return; // Chưa có roles
             }
 
-            var modules = new List<string>
-            {
-                "User", "Role", "Student", "Lecturer", "Partner", 
-                "Thesis", "Menu", "Settings", "Department", "Business",
-                "AcademicYear", "Semester", "InternshipPeriod", "ThesisPeriod",
-                "Dashboard", "Academic" // Added parent menu modules
-            };
+            var modules = ModuleRegistry.GetModuleNames();
 
             var matrixPermissions = new List<RoleModulePermission>();
 
@@ -113,8 +107,6 @@ namespace DataManagementApi.Services
             // Save to database
             await _context.RoleModulePermissions.AddRangeAsync(matrixPermissions);
             await _context.SaveChangesAsync();
-
-            Console.WriteLine($"Seeded {matrixPermissions.Count} matrix permissions");
         }
 
         /// <summary>
@@ -127,7 +119,6 @@ namespace DataManagementApi.Services
             {
                 _context.RoleModulePermissions.RemoveRange(existingPermissions);
                 await _context.SaveChangesAsync();
-                Console.WriteLine($"Cleared {existingPermissions.Count} existing matrix permissions");
             }
         }
     }

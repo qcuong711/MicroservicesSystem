@@ -32,7 +32,10 @@ namespace DataManagementApi.Services
         {
             try
             {
-                var keycloakUserId = userClaims.FindFirst("sub")?.Value;
+                // Try to get Keycloak user ID from different claim types
+                var keycloakUserId = userClaims.FindFirst("sub")?.Value 
+                    ?? userClaims.FindFirst("http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier")?.Value;
+                    
                 if (string.IsNullOrEmpty(keycloakUserId))
                 {
                     _logger.LogWarning("No Keycloak user ID found in claims");
@@ -93,7 +96,9 @@ namespace DataManagementApi.Services
 
         public async Task<bool> IsAdminAsync(ClaimsPrincipal userClaims)
         {
-            var keycloakUserId = userClaims.FindFirst("sub")?.Value;
+            // Try to get Keycloak user ID from different claim types
+            var keycloakUserId = userClaims.FindFirst("sub")?.Value 
+                ?? userClaims.FindFirst("http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier")?.Value;
             if (string.IsNullOrEmpty(keycloakUserId)) return false;
 
             var cacheKey = $"is_admin_{keycloakUserId}";

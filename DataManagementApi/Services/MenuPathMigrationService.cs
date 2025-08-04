@@ -22,8 +22,6 @@ namespace DataManagementApi.Services
         {
             try
             {
-                Console.WriteLine("Starting menu path migration...");
-
                 // Lấy tất cả menus có path bắt đầu với /admin
                 var menusToUpdate = await _context.Menus
                     .Where(m => m.Path.StartsWith("/admin/"))
@@ -31,11 +29,8 @@ namespace DataManagementApi.Services
 
                 if (!menusToUpdate.Any())
                 {
-                    Console.WriteLine("No menus with /admin prefix found. Migration not needed.");
                     return;
                 }
-
-                Console.WriteLine($"Found {menusToUpdate.Count} menus to migrate:");
 
                 // Dictionary mapping old paths to new paths
                 var pathMappings = new Dictionary<string, string>
@@ -74,7 +69,6 @@ namespace DataManagementApi.Services
                     if (pathMappings.TryGetValue(oldPath, out var newPath))
                     {
                         menu.Path = newPath;
-                        Console.WriteLine($"  Migrated: {oldPath} → {newPath}");
                     }
                     else
                     {
@@ -83,18 +77,15 @@ namespace DataManagementApi.Services
                         {
                             newPath = oldPath.Substring(6); // Remove "/admin" (6 characters)
                             menu.Path = newPath;
-                            Console.WriteLine($"  Migrated: {oldPath} → {newPath}");
                         }
                     }
                 }
 
                 // Save changes
                 await _context.SaveChangesAsync();
-                Console.WriteLine($"Successfully migrated {menusToUpdate.Count} menu paths.");
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error during menu path migration: {ex.Message}");
                 throw;
             }
         }
@@ -106,8 +97,6 @@ namespace DataManagementApi.Services
         {
             try
             {
-                Console.WriteLine("Starting menu path rollback...");
-
                 // Get specific paths that should have /admin prefix
                 var pathsToRollback = new[]
                 {
@@ -123,26 +112,20 @@ namespace DataManagementApi.Services
 
                 if (!menusToRollback.Any())
                 {
-                    Console.WriteLine("No menus found for rollback.");
                     return;
                 }
-
-                Console.WriteLine($"Rolling back {menusToRollback.Count} menus:");
 
                 foreach (var menu in menusToRollback)
                 {
                     var oldPath = menu.Path;
                     var newPath = "/admin" + oldPath;
                     menu.Path = newPath;
-                    Console.WriteLine($"  Rolled back: {oldPath} → {newPath}");
                 }
 
                 await _context.SaveChangesAsync();
-                Console.WriteLine($"Successfully rolled back {menusToRollback.Count} menu paths.");
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error during menu path rollback: {ex.Message}");
                 throw;
             }
         }

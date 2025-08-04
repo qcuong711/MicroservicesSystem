@@ -11,16 +11,16 @@ namespace DataManagementApi.Controllers
 {
     private readonly ApplicationDbContext _context;
     private readonly AdminUserSeeder _adminSeeder;
-    private readonly CachedMatrixPermissionService _cachedPermissionService;
+    private readonly SimpleMatrixPermissionService _simplePermissionService;
 
     public DebugController(
         ApplicationDbContext context, 
         AdminUserSeeder adminSeeder,
-        CachedMatrixPermissionService cachedPermissionService)
+        SimpleMatrixPermissionService simplePermissionService)
     {
         _context = context;
         _adminSeeder = adminSeeder;
-        _cachedPermissionService = cachedPermissionService;
+        _simplePermissionService = simplePermissionService;
     }
 
     // GET: api/debug/users
@@ -141,7 +141,7 @@ namespace DataManagementApi.Controllers
     {
         return Ok(new
         {
-            CacheStats = _cachedPermissionService.GetCacheStats(),
+                            CacheStats = new { message = "Using SimpleMatrixPermissionService - no cache available", service = "SimpleMatrixPermissionService" },
             SystemInfo = new
             {
                 TotalUsers = _context.Users.Count(u => u.DeletedAt == null),

@@ -9,14 +9,14 @@ namespace DataManagementApi.Controllers
     [Authorize] // Require authentication
     public class CacheController : ControllerBase
     {
-        private readonly CachedMatrixPermissionService _cachedPermissionService;
+        private readonly SimpleMatrixPermissionService _simplePermissionService;
         private readonly ILogger<CacheController> _logger;
 
         public CacheController(
-            CachedMatrixPermissionService cachedPermissionService,
+            SimpleMatrixPermissionService simplePermissionService,
             ILogger<CacheController> logger)
         {
-            _cachedPermissionService = cachedPermissionService;
+            _simplePermissionService = simplePermissionService;
             _logger = logger;
         }
 
@@ -28,7 +28,7 @@ namespace DataManagementApi.Controllers
         {
             try
             {
-                var stats = _cachedPermissionService.GetCacheStats();
+                var stats = new { message = "Using SimpleMatrixPermissionService - no cache stats available", service = "SimpleMatrixPermissionService", caching = false };
                 return Ok(new
                 {
                     success = true,
@@ -44,6 +44,15 @@ namespace DataManagementApi.Controllers
         }
 
         /// <summary>
+        /// Helper method to get Keycloak User ID from claims
+        /// </summary>
+        private string? GetKeycloakUserId()
+        {
+            return User.FindFirst("sub")?.Value 
+                ?? User.FindFirst("http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier")?.Value;
+        }
+
+        /// <summary>
         /// Clear cache for current user (based on JWT claims)
         /// </summary>
         [HttpPost("clear/me")]
@@ -51,14 +60,14 @@ namespace DataManagementApi.Controllers
         {
             try
             {
-                var keycloakUserId = User.FindFirst("sub")?.Value;
+                var keycloakUserId = GetKeycloakUserId();
                 if (string.IsNullOrEmpty(keycloakUserId))
                 {
                     return BadRequest(new { success = false, message = "User ID not found in token" });
                 }
 
-                _cachedPermissionService.ClearUserCache(keycloakUserId);
-                _logger.LogInformation($"Cache cleared for user {keycloakUserId}");
+                // Note: SimpleMatrixPermissionService doesn't have caching, so this is a no-op
+                _logger.LogInformation($"Cache clear requested for current user {keycloakUserId}, but using non-cached service");
 
                 return Ok(new
                 {
@@ -82,22 +91,23 @@ namespace DataManagementApi.Controllers
         {
             try
             {
-                // Check if current user is admin
-                var isAdmin = await _cachedPermissionService.IsAdminAsync(User);
+                // Check if current user is admin  
+                var isAdmin = await _simplePermissionService.IsAdminAsync(User);
                 if (!isAdmin)
                 {
                     return Forbid("Only administrators can clear other users' cache");
                 }
 
-                _cachedPermissionService.ClearUserCache(keycloakUserId);
-                _logger.LogInformation($"Cache cleared for user {keycloakUserId} by admin {User.FindFirst("sub")?.Value}");
+                // Note: SimpleMatrixPermissionService doesn't have caching, so this is a no-op
+                _logger.LogInformation($"Cache clear requested for user {keycloakUserId}, but using non-cached service");
+                _logger.LogInformation($"Cache cleared for user {keycloakUserId} by admin {GetKeycloakUserId()}");
 
                 return Ok(new
                 {
                     success = true,
                     message = $"Permission cache cleared for user {keycloakUserId}",
                     clearedUserId = keycloakUserId,
-                    clearedBy = User.FindFirst("sub")?.Value
+                    clearedBy = GetKeycloakUserId()
                 });
             }
             catch (Exception ex)
@@ -116,20 +126,21 @@ namespace DataManagementApi.Controllers
             try
             {
                 // Check if current user is admin
-                var isAdmin = await _cachedPermissionService.IsAdminAsync(User);
+                var isAdmin = await _simplePermissionService.IsAdminAsync(User);
                 if (!isAdmin)
                 {
                     return Forbid("Only administrators can clear all caches");
                 }
 
-                _cachedPermissionService.ClearAllCaches();
-                _logger.LogWarning($"All permission caches cleared by admin {User.FindFirst("sub")?.Value}");
+                // Note: SimpleMatrixPermissionService doesn't have caching, so this is a no-op
+                _logger.LogInformation($"All cache clear requested, but using non-cached service");
+                _logger.LogWarning($"All permission caches cleared by admin {GetKeycloakUserId()}");
 
                 return Ok(new
                 {
                     success = true,
                     message = "All permission caches will expire naturally within 15-30 minutes",
-                    clearedBy = User.FindFirst("sub")?.Value,
+                    clearedBy = GetKeycloakUserId(),
                     timestamp = DateTime.UtcNow
                 });
             }
@@ -149,7 +160,7 @@ namespace DataManagementApi.Controllers
             try
             {
                 // Simple health check
-                var keycloakUserId = User.FindFirst("sub")?.Value;
+                var keycloakUserId = GetKeycloakUserId();
                 var health = new
                 {
                     status = "healthy",

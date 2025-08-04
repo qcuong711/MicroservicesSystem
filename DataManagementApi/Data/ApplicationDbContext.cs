@@ -33,6 +33,9 @@ namespace DataManagementApi.Data
         
         // --- Matrix-based Permission System ---
         public DbSet<RoleModulePermission> RoleModulePermissions { get; set; }
+        
+        // --- Permission Audit System ---
+        public DbSet<PermissionAuditLog> PermissionAuditLogs { get; set; }
         // -----------------------------------------
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)

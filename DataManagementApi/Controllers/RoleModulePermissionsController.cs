@@ -1,6 +1,7 @@
 using DataManagementApi.Data;
 using DataManagementApi.Models;
 using DataManagementApi.Models.Dtos.RoleModulePermission;
+using DataManagementApi.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authorization;
@@ -33,13 +34,8 @@ namespace DataManagementApi.Controllers
                     return NotFound($"Role với ID {roleId} không tồn tại");
                 }
 
-                // Lấy tất cả modules có trong hệ thống
-                var allModules = new List<string>
-                {
-                    "User", "Role", "Student", "Lecturer", "Partner", 
-                    "Thesis", "Menu", "Settings", "Department", "Business",
-                    "AcademicYear", "Semester", "InternshipPeriod", "ThesisPeriod"
-                };
+                // Lấy tất cả modules có trong hệ thống từ ModuleRegistry
+                var allModules = ModuleRegistry.GetModuleNames();
 
                 // Lấy permissions hiện tại của role
                 var existingPermissions = await _context.RoleModulePermissions
@@ -124,6 +120,19 @@ namespace DataManagementApi.Controllers
 
                 await _context.SaveChangesAsync();
 
+                // Broadcast permission updates to affected users (fire and forget)
+                _ = Task.Run(async () =>
+                {
+                    try
+                    {
+                        await BroadcastPermissionUpdatesToUsers(roleId);
+                    }
+                    catch (Exception ex)
+                    {
+                        // Log but don't fail the main operation
+                    }
+                });
+
                 return Ok(new { message = $"Cập nhật thành công matrix permissions cho role {role.Name}" });
             }
             catch (Exception ex)
@@ -134,19 +143,25 @@ namespace DataManagementApi.Controllers
 
         // GET: api/role-module-permissions/modules
         [HttpGet("modules")]
-        public async Task<ActionResult<List<string>>> GetAvailableModules()
+        public async Task<ActionResult<List<object>>> GetAvailableModules()
         {
             try
             {
-                // Trả về danh sách tất cả modules có trong hệ thống
-                var modules = new List<string>
-                {
-                    "User", "Role", "Student", "Lecturer", "Partner", 
-                    "Thesis", "Menu", "Settings", "Department", "Business",
-                    "AcademicYear", "Semester", "InternshipPeriod", "ThesisPeriod"
-                };
+                // Sử dụng ModuleRegistry để lấy danh sách modules
+                var modules = ModuleRegistry.Modules.Values
+                    .Where(m => m.IsActive)
+                    .OrderBy(m => m.DisplayOrder)
+                    .Select(m => new
+                    {
+                        m.Name,
+                        m.DisplayName,
+                        m.Description,
+                        m.Category,
+                        AvailablePermissions = m.AvailablePermissions
+                    })
+                    .ToList();
 
-                return Ok(modules.OrderBy(m => m).ToList());
+                return Ok(modules);
             }
             catch (Exception ex)
             {
@@ -261,6 +276,35 @@ namespace DataManagementApi.Controllers
             catch (Exception ex)
             {
                 return StatusCode(500, $"Lỗi khi xóa permission: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Broadcast permission updates to all users with the specified role
+        /// </summary>
+        private async Task BroadcastPermissionUpdatesToUsers(int roleId)
+        {
+            try
+            {
+                // Get all users with this role
+                var usersWithRole = await _context.Users
+                    .Include(u => u.UserRoles)
+                    .Where(u => u.UserRoles.Any(ur => ur.RoleId == roleId) && u.DeletedAt == null)
+                    .Select(u => u.KeycloakUserId)
+                    .ToListAsync();
+
+                // Broadcast to each user
+                foreach (var keycloakUserId in usersWithRole)
+                {
+                    if (!string.IsNullOrEmpty(keycloakUserId))
+                    {
+                        await PermissionsStreamController.BroadcastRoleUpdate(keycloakUserId);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                // Log error but don't throw - this is fire-and-forget
             }
         }
     }

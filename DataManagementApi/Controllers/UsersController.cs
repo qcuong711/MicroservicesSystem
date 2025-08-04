@@ -2,6 +2,8 @@ using DataManagementApi.Data;
 using DataManagementApi.Models;
 using DataManagementApi.Models.Dtos.User;
 using DataManagementApi.Models.Dtos.UserRole;
+using DataManagementApi.Services;
+using DataManagementApi.Extensions;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authorization;
@@ -541,7 +543,7 @@ namespace DataManagementApi.Controllers
             try
             {
                 // Lấy Keycloak User ID từ JWT token
-                var keycloakUserId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                var keycloakUserId = User.GetKeycloakUserId();
                 
                 if (string.IsNullOrEmpty(keycloakUserId))
                 {
@@ -581,6 +583,52 @@ namespace DataManagementApi.Controllers
             }
         }
 
+        // GET: api/users/me/permissions
+        [HttpGet("me/permissions")]
+        [Authorize]
+        public async Task<ActionResult<Dictionary<string, object>>> GetCurrentUserPermissions()
+        {
+            try
+            {
+                // Lấy Keycloak User ID từ JWT token
+                var keycloakUserId = User.GetKeycloakUserId();
+                
+                if (string.IsNullOrEmpty(keycloakUserId))
+                {
+                    return Unauthorized(new { message = "Token không hợp lệ hoặc không chứa thông tin user." });
+                }
+
+                // Lấy all permissions của user từ cached service
+                var userPermissions = new Dictionary<string, object>();
+                var moduleNames = ModuleRegistry.GetModuleNames();
+                
+                var matrixService = HttpContext.RequestServices.GetRequiredService<SimpleMatrixPermissionService>();
+
+                foreach (var moduleName in moduleNames)
+                {
+                    var modulePermissions = new Dictionary<string, bool>
+                    {
+                        ["canCreate"] = await matrixService.CanCreateAsync(User, moduleName),
+                        ["canRead"] = await matrixService.CanReadAsync(User, moduleName),
+                        ["canUpdate"] = await matrixService.CanUpdateAsync(User, moduleName),
+                        ["canDelete"] = await matrixService.CanDeleteAsync(User, moduleName)
+                    };
+                    
+                    // Chỉ add nếu có ít nhất 1 permission = true
+                    if (modulePermissions.Values.Any(p => p))
+                    {
+                        userPermissions[moduleName] = modulePermissions;
+                    }
+                }
+
+                return Ok(userPermissions);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, $"Lỗi truy xuất permissions: {ex.Message}");
+            }
+        }
+
         // GET: api/users/me/menus
         [HttpGet("me/menus")]
         [Authorize]
@@ -589,7 +637,7 @@ namespace DataManagementApi.Controllers
             try
             {
                 // Lấy Keycloak User ID từ JWT token
-                var keycloakUserId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                var keycloakUserId = User.GetKeycloakUserId();
                 
                 if (string.IsNullOrEmpty(keycloakUserId))
                 {

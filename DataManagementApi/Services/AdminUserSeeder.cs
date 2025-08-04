@@ -27,7 +27,6 @@ namespace DataManagementApi.Services
                 var adminRole = await _context.Roles.FirstOrDefaultAsync(r => r.Name == "Admin");
                 if (adminRole == null)
                 {
-                    Console.WriteLine("AdminUserSeeder: Admin role not found, skipping admin user creation");
                     return;
                 }
 
@@ -37,7 +36,6 @@ namespace DataManagementApi.Services
 
                 if (existingAdmin != null)
                 {
-                    Console.WriteLine($"AdminUserSeeder: Admin user already exists - {existingAdmin.Email}");
                     return;
                 }
 
@@ -64,12 +62,10 @@ namespace DataManagementApi.Services
 
                 await _context.UserRoles.AddAsync(userRole);
                 await _context.SaveChangesAsync();
-
-                Console.WriteLine($"AdminUserSeeder: Created default admin user - {adminUser.Email} with role Admin");
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"AdminUserSeeder: Error creating admin user - {ex.Message}");
+                // Error creating admin user
             }
         }
 
@@ -83,7 +79,6 @@ namespace DataManagementApi.Services
                 var adminRole = await _context.Roles.FirstOrDefaultAsync(r => r.Name == "Admin");
                 if (adminRole == null)
                 {
-                    Console.WriteLine("AdminUserSeeder: Admin role not found");
                     return;
                 }
 
@@ -94,7 +89,6 @@ namespace DataManagementApi.Services
 
                 if (user == null)
                 {
-                    Console.WriteLine($"AdminUserSeeder: User not found - {emailOrKeycloakId}");
                     return;
                 }
 
@@ -102,7 +96,6 @@ namespace DataManagementApi.Services
                 var hasAdminRole = user.UserRoles.Any(ur => ur.RoleId == adminRole.Id);
                 if (hasAdminRole)
                 {
-                    Console.WriteLine($"AdminUserSeeder: User {user.Email} already has Admin role");
                     return;
                 }
 
@@ -115,12 +108,10 @@ namespace DataManagementApi.Services
 
                 await _context.UserRoles.AddAsync(userRole);
                 await _context.SaveChangesAsync();
-
-                Console.WriteLine($"AdminUserSeeder: Promoted user {user.Email} to Admin role");
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"AdminUserSeeder: Error promoting user to admin - {ex.Message}");
+                // Error promoting user to admin
             }
         }
 
@@ -137,17 +128,11 @@ namespace DataManagementApi.Services
                     .Where(u => u.DeletedAt == null)
                     .ToListAsync();
 
-                Console.WriteLine("=== ALL USERS AND THEIR ROLES ===");
-                foreach (var user in users)
-                {
-                    var roles = string.Join(", ", user.UserRoles.Select(ur => ur.Role.Name));
-                    Console.WriteLine($"User: {user.Email} ({user.KeycloakUserId}) - Roles: [{roles}]");
-                }
-                Console.WriteLine("=== END USER LIST ===");
+                // List all users and roles for debugging
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"AdminUserSeeder: Error listing users - {ex.Message}");
+                // Error listing users
             }
         }
     }

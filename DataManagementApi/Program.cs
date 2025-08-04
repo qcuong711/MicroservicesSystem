@@ -1,6 +1,7 @@
 using DataManagementApi.Data;
 using DataManagementApi.Services;
 using DataManagementApi.Authorization;
+using DataManagementApi.Extensions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
@@ -44,9 +45,11 @@ builder.Services.AddScoped<DataSeeder>();
 builder.Services.AddScoped<DepartmentAccessService>();
 builder.Services.AddScoped<MatrixPermissionSeeder>();
 builder.Services.AddScoped<MatrixPermissionService>();
-builder.Services.AddScoped<CachedMatrixPermissionService>(); // Add cached service
+// builder.Services.AddScoped<CachedMatrixPermissionService>(); // Add cached service - TEMPORARILY DISABLED
+builder.Services.AddScoped<SimpleMatrixPermissionService>(); // Add simple service for testing - NO CACHE
 builder.Services.AddScoped<MenuPathMigrationService>();
 builder.Services.AddScoped<AdminUserSeeder>();
+builder.Services.AddScoped<PermissionAuditService>(); // Add audit service
 
 // Add Memory Cache for performance
 builder.Services.AddMemoryCache();
@@ -93,7 +96,6 @@ builder.Services.AddAuthentication(options =>
     }
 
     var validateAudience = builder.Configuration.GetValue<bool>("Jwt:ValidateAudience", true);
-    Console.WriteLine($"JWT Debug: ValidateAudience setting: {validateAudience}");
     
     options.TokenValidationParameters = new TokenValidationParameters
     {
@@ -118,41 +120,25 @@ builder.Services.AddAuthentication(options =>
         OnMessageReceived = context =>
         {
             var token = context.Request.Headers["Authorization"].FirstOrDefault();
-            Console.WriteLine($"JWT Debug: Authorization header: {(string.IsNullOrEmpty(token) ? "MISSING" : "PRESENT")}");
             return Task.CompletedTask;
         },
         OnTokenValidated = async context =>
         {
-            Console.WriteLine("JWT Debug: Token validated successfully");
-            
-            // Debug JWT token claims
-            var claimsPrincipal = context.Principal;
-            if (claimsPrincipal != null)
-            {
-                Console.WriteLine("JWT Debug: All claims in token:");
-                foreach (var claim in claimsPrincipal.Claims)
-                {
-                    Console.WriteLine($"  {claim.Type}: {claim.Value}");
-                }
-            }
-            
             // Lấy các service cần thiết từ Dependency Injection Container
             var dbContext = context.HttpContext.RequestServices.GetRequiredService<ApplicationDbContext>();
             
             // Lấy thông tin người dùng từ token đã được xác thực
+            var claimsPrincipal = context.Principal;
             if (claimsPrincipal == null) 
             {
-                Console.WriteLine("JWT Debug: ClaimsPrincipal is null");
                 return;
             }
 
             // `sub` claim là ID duy nhất của user bên Keycloak
-            var keycloakUserId = claimsPrincipal.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            Console.WriteLine($"JWT Debug: Keycloak User ID: {keycloakUserId}");
+                                var keycloakUserId = claimsPrincipal.GetKeycloakUserId();
             
             if (string.IsNullOrEmpty(keycloakUserId))
             {
-                Console.WriteLine("JWT Debug: Token không chứa Keycloak User ID (sub)");
                 context.Fail("Token không chứa Keycloak User ID (sub).");
                 return;
             }
@@ -195,10 +181,7 @@ builder.Services.AddAuthentication(options =>
                     };
                     dbContext.UserRoles.Add(userRole);
                     await dbContext.SaveChangesAsync();
-                    Console.WriteLine($"JWT Debug: Gán role Student cho user mới - UserId: {newUser.Id}, RoleId: {studentRole.Id}");
                 }
-
-                Console.WriteLine($"JWT Debug: Tạo user mới - Email: {email}, KeycloakUserId: {keycloakUserId}");
             }
             else if (string.IsNullOrEmpty(user.KeycloakUserId))
             {
@@ -207,20 +190,10 @@ builder.Services.AddAuthentication(options =>
                 user.Name = name; // Cập nhật name nếu cần
                 user.UpdatedAt = DateTime.UtcNow;
                 await dbContext.SaveChangesAsync();
-                Console.WriteLine($"JWT Debug: Cập nhật KeycloakUserId cho user hiện tại - Email: {email}, KeycloakUserId: {keycloakUserId}");
-            }
-            else
-            {
-                Console.WriteLine($"JWT Debug: User đã tồn tại - Email: {email}, KeycloakUserId: {keycloakUserId}");
             }
         },
         OnAuthenticationFailed = context =>
         {
-            Console.WriteLine($"JWT Debug: Authentication failed: {context.Exception.Message}");
-            if (context.Exception.Message.Contains("Audience validation failed"))
-            {
-                Console.WriteLine("JWT Debug: This is an audience validation error. Check Keycloak client configuration.");
-            }
             return Task.CompletedTask;
         }
     };

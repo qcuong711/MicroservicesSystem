@@ -12,5 +12,7 @@ namespace DataManagementApi.Models.Dtos.ThesisPeriod
         [Required]
         public int AcademicYearId { get; set; }
         // Thêm các trường khác nếu cần
+        [Required]
+        public int SemesterId { get; set; } = 3; // Mặc định là 3 nếu không có SemesterId (học kì hè)
     }
 }

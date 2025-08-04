@@ -116,6 +116,7 @@ namespace DataManagementApi.Controllers
                 StartDate = dto.StartDate,
                 EndDate = dto.EndDate,
                 AcademicYearId = dto.AcademicYearId,
+                SemesterId = dto.SemesterId,
                 CreatedAt = DateTime.UtcNow
             };
             _context.ThesisPeriods.Add(period);
@@ -127,7 +128,8 @@ namespace DataManagementApi.Controllers
                 StartDate = period.StartDate.ToString("o"),
                 EndDate = period.EndDate.ToString("o"),
                 AcademicYearId = period.AcademicYearId,
-                AcademicYearName = academicYear.Name
+                AcademicYearName = academicYear.Name,
+                SemesterId = period.SemesterId
             };
             return CreatedAtAction(nameof(GetThesisPeriod), new { id = period.Id }, result);
         }

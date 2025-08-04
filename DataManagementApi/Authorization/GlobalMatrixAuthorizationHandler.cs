@@ -9,15 +9,18 @@ namespace DataManagementApi.Authorization
     /// </summary>
     public class GlobalMatrixAuthorizationHandler : AuthorizationHandler<GlobalMatrixRequirement>
     {
-        private readonly CachedMatrixPermissionService _cachedMatrixPermissionService;
+        private readonly SimpleMatrixPermissionService _simpleMatrixPermissionService;
         private readonly ILogger<GlobalMatrixAuthorizationHandler> _logger;
+        private readonly PermissionAuditService _auditService;
 
         public GlobalMatrixAuthorizationHandler(
-            CachedMatrixPermissionService cachedMatrixPermissionService,
-            ILogger<GlobalMatrixAuthorizationHandler> logger)
+            SimpleMatrixPermissionService simpleMatrixPermissionService,
+            ILogger<GlobalMatrixAuthorizationHandler> logger,
+            PermissionAuditService auditService)
         {
-            _cachedMatrixPermissionService = cachedMatrixPermissionService;
+            _simpleMatrixPermissionService = simpleMatrixPermissionService;
             _logger = logger;
+            _auditService = auditService;
         }
 
         protected override async Task HandleRequirementAsync(
@@ -60,12 +63,34 @@ namespace DataManagementApi.Authorization
                     return;
                 }
 
-                // Check matrix permission (with caching)
-                var hasPermission = await _cachedMatrixPermissionService.HasPermissionAsync(
+                // Check matrix permission (direct database query - no cache)
+                var hasPermission = await _simpleMatrixPermissionService.HasPermissionAsync(
                     context.User, 
                     moduleName, 
                     permissionType
                 );
+
+                // Log audit trail (fire and forget)
+                _ = Task.Run(async () =>
+                {
+                    try
+                    {
+                        var deniedReason = hasPermission ? null : $"User lacks {permissionType} permission for {moduleName} module";
+                        await _auditService.LogPermissionCheckAsync(
+                            context.User,
+                            moduleName,
+                            permissionType,
+                            hasPermission,
+                            httpContext,
+                            resource: ExtractResourceId(httpContext.Request.Path.Value),
+                            deniedReason: deniedReason
+                        );
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "Failed to log audit trail for permission check");
+                    }
+                });
 
                 if (hasPermission)
                 {
@@ -101,6 +126,7 @@ namespace DataManagementApi.Authorization
                 "/swagger",             // Swagger docs
                 "/health",              // Health check
                 "/api/selections",      // Selection dropdown APIs
+                "/api/permissions/stream", // SSE stream endpoint
             };
 
             return skipPaths.Any(skipPath => path.StartsWith(skipPath));
@@ -113,38 +139,8 @@ namespace DataManagementApi.Authorization
         {
             if (string.IsNullOrEmpty(path)) return ("", "");
 
-            // Route mapping: API path → Module name
-            var moduleMapping = new Dictionary<string, string>
-            {
-                { "/api/users", "User" },
-                { "/api/roles", "Role" },
-                { "/api/permissions", "Role" }, // Permissions thuộc về Role module
-                { "/api/students", "Student" },
-                { "/api/lecturers", "Lecturer" },
-                { "/api/departments", "Department" },
-                { "/api/partners", "Partner" },
-                { "/api/businesses", "Business" },
-                { "/api/theses", "Thesis" },
-                { "/api/thesis-periods", "ThesisPeriod" },
-                { "/api/internships", "InternshipPeriod" },
-                { "/api/internship-periods", "InternshipPeriod" },
-                { "/api/academic-years", "AcademicYear" },
-                { "/api/semesters", "Semester" },
-                { "/api/menus", "Menu" },
-                { "/api/system-settings", "Settings" },
-                { "/api/role-module-permissions", "Role" } // Matrix permissions thuộc về Role
-            };
-
-            // Tìm module name từ path
-            string moduleName = "";
-            foreach (var mapping in moduleMapping)
-            {
-                if (path.StartsWith(mapping.Key))
-                {
-                    moduleName = mapping.Value;
-                    break;
-                }
-            }
+            // Sử dụng ModuleRegistry để tìm module từ API path
+            string moduleName = ModuleRegistry.GetModuleByApiPath(path) ?? "";
 
             if (string.IsNullOrEmpty(moduleName)) return ("", "");
 
@@ -162,6 +158,34 @@ namespace DataManagementApi.Authorization
             };
 
             return (moduleName, permissionType);
+        }
+
+        /// <summary>
+        /// Extract resource ID from request path for audit logging
+        /// </summary>
+        private static string? ExtractResourceId(string? path)
+        {
+            if (string.IsNullOrEmpty(path)) return null;
+
+            // Try to extract ID from common REST patterns
+            // e.g., /api/users/123 -> "123"
+            // e.g., /api/users/123/roles -> "123"
+            var segments = path.Split('/', StringSplitOptions.RemoveEmptyEntries);
+            
+            // Look for numeric IDs after API endpoints
+            for (int i = 0; i < segments.Length - 1; i++)
+            {
+                if (segments[i] == "api" && i + 2 < segments.Length)
+                {
+                    // Check if the segment after the module name is a number
+                    if (int.TryParse(segments[i + 2], out var id))
+                    {
+                        return id.ToString();
+                    }
+                }
+            }
+
+            return null;
         }
     }
 
