@@ -51,6 +51,8 @@ namespace DataManagementApi.Models
         public string? ReportUrl { get; set; }
         
         public double? Grade { get; set; }
+
+        public string? Status { get; set; } // Draft, Submitted, Approved, Rejected
         
         public DateTime? DeletedAt { get; set; }
 

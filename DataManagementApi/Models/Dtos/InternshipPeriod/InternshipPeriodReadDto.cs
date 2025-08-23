@@ -8,7 +8,9 @@ namespace DataManagementApi.Models.Dtos.InternshipPeriod
         public DateTime StartDate { get; set; }
         public DateTime EndDate { get; set; }
         public int AcademicYearId { get; set; }
+        public string? AcademicYearName { get; set; }
         public int SemesterId { get; set; }
+        public string? SemesterName { get; set; }
         public DateTime CreatedAt { get; set; }
         public DateTime? UpdatedAt { get; set; }
         public DateTime? DeletedAt { get; set; }

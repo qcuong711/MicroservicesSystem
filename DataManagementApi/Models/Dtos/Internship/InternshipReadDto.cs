@@ -12,6 +12,7 @@ namespace DataManagementApi.Models.Dtos.Internship
         public string? InternshipPeriodName { get; set; }
         public string? ReportUrl { get; set; }
         public double? Grade { get; set; }
+        public string? Status { get; set; }
         public DateTime? DeletedAt { get; set; }
     }
 }

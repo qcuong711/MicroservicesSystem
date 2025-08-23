@@ -50,6 +50,8 @@ builder.Services.AddScoped<SimpleMatrixPermissionService>(); // Add simple servi
 builder.Services.AddScoped<MenuPathMigrationService>();
 builder.Services.AddScoped<AdminUserSeeder>();
 builder.Services.AddScoped<PermissionAuditService>(); // Add audit service
+builder.Services.AddScoped<ICourseClassService, CourseClassService>(); // Add CourseClass service
+builder.Services.AddScoped<IFileService, FileService>(); // Add File service
 
 // Add Memory Cache for performance
 builder.Services.AddMemoryCache();
@@ -209,6 +211,9 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
+// Cấu hình để phục vụ static files từ thư mục wwwroot
+app.UseStaticFiles();
+
 if (!app.Environment.IsDevelopment())
 {
     app.UseHttpsRedirection();
@@ -221,10 +226,9 @@ app.UseAuthorization();
 
 app.MapControllers();
 
-// Seed data in development environment
-if (app.Environment.IsDevelopment())
+// Seed data
+using (var scope = app.Services.CreateScope()) 
 {
-    using var scope = app.Services.CreateScope();
     var seeder = scope.ServiceProvider.GetRequiredService<DataSeeder>();
     await seeder.SeedAsync();
     

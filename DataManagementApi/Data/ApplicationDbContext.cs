@@ -21,6 +21,7 @@ namespace DataManagementApi.Data
         public DbSet<Business> Business { get; set; }
         public DbSet<ThesisPeriodBusiness> ThesisPeriodBusiness { get; set; }
         public DbSet<PartnerBusiness> PartnerBusiness { get; set; }
+        public DbSet<CourseClass> Classes { get; set; }
 
         // --- Models cho User, Role, Permission ---
         public DbSet<Role> Roles { get; set; }
@@ -41,6 +42,11 @@ namespace DataManagementApi.Data
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
+            
+            // Cấu hình kiểu dữ liệu cho trường Score trong Thesis
+            modelBuilder.Entity<Thesis>()
+                .Property(t => t.Score)
+                .HasPrecision(5, 2);
 
             // Cấu hình quan hệ cha-con cho Department
             modelBuilder.Entity<Department>()
@@ -209,6 +215,31 @@ namespace DataManagementApi.Data
                 .HasOne(pbf => pbf.Business)
                 .WithMany(bf => bf.PartnerBusiness)
                 .HasForeignKey(pbf => pbf.BusinessId);
+
+            // Cấu hình cho CourseClass
+            modelBuilder.Entity<CourseClass>()
+                .HasOne(c => c.Department)
+                .WithMany()
+                .HasForeignKey(c => c.DepartmentId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<CourseClass>()
+                .HasOne(c => c.Semester)
+                .WithMany()
+                .HasForeignKey(c => c.SemesterId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<CourseClass>()
+                .HasOne(c => c.AcademicYear)
+                .WithMany()
+                .HasForeignKey(c => c.AcademicYearId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<CourseClass>()
+                .HasOne(c => c.AdvisorLecturer)
+                .WithMany()
+                .HasForeignKey(c => c.AdvisorLecturerId)
+                .OnDelete(DeleteBehavior.Restrict);
         }
     }
 }

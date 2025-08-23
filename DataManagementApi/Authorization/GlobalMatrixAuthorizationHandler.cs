@@ -58,8 +58,8 @@ namespace DataManagementApi.Authorization
 
                 if (string.IsNullOrEmpty(moduleName) || string.IsNullOrEmpty(permissionType))
                 {
-                    _logger.LogWarning($"Cannot determine module/permission for {method} {path}");
-                    context.Succeed(requirement); // Allow by default nếu không xác định được
+                    _logger.LogWarning($"Cannot determine module/permission for {method} {path}. Access denied by default.");
+                    context.Fail(); // Fail by default nếu không xác định được
                     return;
                 }
 
@@ -196,4 +196,4 @@ namespace DataManagementApi.Authorization
     {
         // Empty requirement class
     }
-} 
+}

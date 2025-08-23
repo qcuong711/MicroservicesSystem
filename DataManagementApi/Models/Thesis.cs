@@ -32,6 +32,17 @@ namespace DataManagementApi.Models
 
         public DateTime SubmissionDate { get; set; }
         public string? Status { get; set; } // Draft, Submitted, Approved, Rejected
+        
+        // File upload properties
+        public string? ReportUrl { get; set; } // URL to the uploaded file
+        public string? FileName { get; set; } // Original file name
+        public string? FileType { get; set; } // MIME type of the file
+        public long? FileSize { get; set; } // Size of the file in bytes
+        public DateTime? UploadDate { get; set; } // Date when the file was uploaded
+        
+        // Score property
+        public decimal? Score { get; set; } // Điểm số của luận văn
+        
         public DateTime CreatedAt { get; set; }
         public DateTime UpdatedAt { get; set; }
         public DateTime? DeletedAt { get; set; } // Soft delete

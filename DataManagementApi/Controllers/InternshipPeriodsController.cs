@@ -22,6 +22,8 @@ namespace DataManagementApi.Controllers
         public async Task<ActionResult<object>> GetInternshipPeriods([FromQuery] int page = 1, [FromQuery] int limit = 10, [FromQuery] string search = "")
         {
             var query = _context.InternshipPeriods
+                .Include(p => p.AcademicYear)
+                .Include(p => p.Semester)
                 .Where(p => p.DeletedAt == null)
                 .AsQueryable();
             if (!string.IsNullOrEmpty(search))
@@ -41,7 +43,9 @@ namespace DataManagementApi.Controllers
                     StartDate = p.StartDate,
                     EndDate = p.EndDate,
                     AcademicYearId = p.AcademicYearId,
+                    AcademicYearName = p.AcademicYear != null ? p.AcademicYear.Name : null,
                     SemesterId = p.SemesterId,
+                    SemesterName = p.Semester != null ? p.Semester.Name : null,
                     CreatedAt = p.CreatedAt,
                     UpdatedAt = p.UpdatedAt,
                     DeletedAt = p.DeletedAt
@@ -55,6 +59,8 @@ namespace DataManagementApi.Controllers
         public async Task<ActionResult<InternshipPeriodReadDto>> GetInternshipPeriod(int id)
         {
             var period = await _context.InternshipPeriods
+                .Include(p => p.AcademicYear)
+                .Include(p => p.Semester)
                 .Where(p => p.Id == id && p.DeletedAt == null)
                 .Select(p => new InternshipPeriodReadDto
                 {
@@ -64,7 +70,9 @@ namespace DataManagementApi.Controllers
                     StartDate = p.StartDate,
                     EndDate = p.EndDate,
                     AcademicYearId = p.AcademicYearId,
+                    AcademicYearName = p.AcademicYear != null ? p.AcademicYear.Name : null,
                     SemesterId = p.SemesterId,
+                    SemesterName = p.Semester != null ? p.Semester.Name : null,
                     CreatedAt = p.CreatedAt,
                     UpdatedAt = p.UpdatedAt,
                     DeletedAt = p.DeletedAt
@@ -91,18 +99,27 @@ namespace DataManagementApi.Controllers
             };
             _context.InternshipPeriods.Add(period);
             await _context.SaveChangesAsync();
+            
+            // Reload with includes to get related data
+            var createdPeriod = await _context.InternshipPeriods
+                .Include(p => p.AcademicYear)
+                .Include(p => p.Semester)
+                .FirstOrDefaultAsync(p => p.Id == period.Id);
+                
             var result = new InternshipPeriodReadDto
             {
-                Id = period.Id,
-                Name = period.Name,
-                Description = period.Description,
-                StartDate = period.StartDate,
-                EndDate = period.EndDate,
-                AcademicYearId = period.AcademicYearId,
-                SemesterId = period.SemesterId,
-                CreatedAt = period.CreatedAt,
-                UpdatedAt = period.UpdatedAt,
-                DeletedAt = period.DeletedAt
+                Id = createdPeriod!.Id,
+                Name = createdPeriod.Name,
+                Description = createdPeriod.Description,
+                StartDate = createdPeriod.StartDate,
+                EndDate = createdPeriod.EndDate,
+                AcademicYearId = createdPeriod.AcademicYearId,
+                AcademicYearName = createdPeriod.AcademicYear?.Name,
+                SemesterId = createdPeriod.SemesterId,
+                SemesterName = createdPeriod.Semester?.Name,
+                CreatedAt = createdPeriod.CreatedAt,
+                UpdatedAt = createdPeriod.UpdatedAt,
+                DeletedAt = createdPeriod.DeletedAt
             };
             return CreatedAtAction(nameof(GetInternshipPeriod), new { id = period.Id }, result);
         }
@@ -111,8 +128,10 @@ namespace DataManagementApi.Controllers
         [HttpPut("{id}")]
         public async Task<IActionResult> PutInternshipPeriod(int id, InternshipPeriodUpdateDto dto)
         {
+            if (!ModelState.IsValid) return BadRequest(ModelState);
             var period = await _context.InternshipPeriods.FindAsync(id);
             if (period == null || period.DeletedAt != null) return NotFound();
+            
             if (dto.Name != null) period.Name = dto.Name;
             if (dto.Description != null) period.Description = dto.Description;
             if (dto.StartDate.HasValue) period.StartDate = dto.StartDate.Value;
@@ -120,20 +139,44 @@ namespace DataManagementApi.Controllers
             if (dto.AcademicYearId.HasValue) period.AcademicYearId = dto.AcademicYearId.Value;
             if (dto.SemesterId.HasValue) period.SemesterId = dto.SemesterId.Value;
             period.UpdatedAt = DateTime.UtcNow;
-            await _context.SaveChangesAsync();
-            return Ok(new InternshipPeriodReadDto
+            
+            try
             {
-                Id = period.Id,
-                Name = period.Name,
-                Description = period.Description,
-                StartDate = period.StartDate,
-                EndDate = period.EndDate,
-                AcademicYearId = period.AcademicYearId,
-                SemesterId = period.SemesterId,
-                CreatedAt = period.CreatedAt,
-                UpdatedAt = period.UpdatedAt,
-                DeletedAt = period.DeletedAt
-            });
+                await _context.SaveChangesAsync();
+                
+                // Reload with includes to get related data
+                var updatedPeriod = await _context.InternshipPeriods
+                    .Include(p => p.AcademicYear)
+                    .Include(p => p.Semester)
+                    .FirstOrDefaultAsync(p => p.Id == id);
+                    
+                var result = new InternshipPeriodReadDto
+                {
+                    Id = updatedPeriod!.Id,
+                    Name = updatedPeriod.Name,
+                    Description = updatedPeriod.Description,
+                    StartDate = updatedPeriod.StartDate,
+                    EndDate = updatedPeriod.EndDate,
+                    AcademicYearId = updatedPeriod.AcademicYearId,
+                    AcademicYearName = updatedPeriod.AcademicYear?.Name,
+                    SemesterId = updatedPeriod.SemesterId,
+                    SemesterName = updatedPeriod.Semester?.Name,
+                    CreatedAt = updatedPeriod.CreatedAt,
+                    UpdatedAt = updatedPeriod.UpdatedAt,
+                    DeletedAt = updatedPeriod.DeletedAt
+                };
+                return Ok(result);
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                if (!await InternshipPeriodExistsAsync(id)) return NotFound();
+                else throw;
+            }
+        }
+
+        private async Task<bool> InternshipPeriodExistsAsync(int id)
+        {
+            return await _context.InternshipPeriods.AnyAsync(e => e.Id == id);
         }
 
         // SOFT DELETE: api/internship-periods/soft-delete/{id}
@@ -158,4 +201,4 @@ namespace DataManagementApi.Controllers
             return NoContent();
         }
     }
-} 
+}

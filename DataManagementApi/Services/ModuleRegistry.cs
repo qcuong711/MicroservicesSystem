@@ -171,6 +171,18 @@ namespace DataManagementApi.Services
                 DisplayOrder = 14
             };
 
+            _modules["CourseClass"] = new ModuleDefinition
+            {
+                Name = "CourseClass",
+                DisplayName = "Lớp học phần",
+                Description = "Quản lý lớp học phần",
+                ApiPaths = ["/api/courseclass"],
+                MenuPaths = ["/course-classes", "/academic/course-classes"],
+                AvailablePermissions = ["Create", "Read", "Update", "Delete", "Assign"],
+                Category = "Academic",
+                DisplayOrder = 15
+            };
+
             // Business & Partners
             _modules["Partner"] = new ModuleDefinition
             {
@@ -226,11 +238,23 @@ namespace DataManagementApi.Services
                 Name = "InternshipPeriod",
                 DisplayName = "Kỳ thực tập",
                 Description = "Quản lý các kỳ thực tập",
-                ApiPaths = ["/api/internships", "/api/internship-periods"],
-                MenuPaths = ["/internship", "/internship-periods"],
+                ApiPaths = ["/api/internship-periods"],
+                MenuPaths = ["/internship-periods"],
                 AvailablePermissions = ["Create", "Read", "Update", "Delete"],
                 Category = "Project",
                 DisplayOrder = 32
+            };
+            
+            _modules["Internship"] = new ModuleDefinition
+            {
+                Name = "Internship",
+                DisplayName = "Thực tập",
+                Description = "Quản lý thực tập",
+                ApiPaths = ["/api/internships"],
+                MenuPaths = ["/internship"],
+                AvailablePermissions = ["Create", "Read", "Update", "Delete", "Approve", "Export"],
+                Category = "Project",
+                DisplayOrder = 33
             };
 
             // Dashboard & Reports
@@ -258,6 +282,43 @@ namespace DataManagementApi.Services
                 Category = "Parent",
                 DisplayOrder = 100
             };
+            
+            // Student Module - Thêm mới
+            _modules["StudentThesis"] = new ModuleDefinition
+            {
+                Name = "StudentThesis",
+                DisplayName = "Đồ án sinh viên",
+                Description = "Quản lý đồ án của sinh viên",
+                ApiPaths = ["/api/student-theses"],
+                MenuPaths = ["/student/thesis", "/student/thesis/register", "/student/thesis/progress"],
+                AvailablePermissions = ["Create", "Read", "Update", "Submit", "View"],
+                Category = "Student",
+                DisplayOrder = 40
+            };
+            
+            _modules["StudentInternship"] = new ModuleDefinition
+            {
+                Name = "StudentInternship",
+                DisplayName = "Thực tập sinh viên",
+                Description = "Quản lý thực tập của sinh viên",
+                ApiPaths = ["/api/student-internships"],
+                MenuPaths = ["/student/internship", "/student/internship/register", "/student/internship/progress"],
+                AvailablePermissions = ["Create", "Read", "Update", "Submit", "View"],
+                Category = "Student",
+                DisplayOrder = 41
+            };
+            
+            _modules["StudentProfile"] = new ModuleDefinition
+            {
+                Name = "StudentProfile",
+                DisplayName = "Hồ sơ sinh viên",
+                Description = "Quản lý thông tin cá nhân sinh viên",
+                ApiPaths = ["/api/student-profile"],
+                MenuPaths = ["/student/profile"],
+                AvailablePermissions = ["Read", "Update"],
+                Category = "Student",
+                DisplayOrder = 42
+            };
         }
     }
-} 
+}

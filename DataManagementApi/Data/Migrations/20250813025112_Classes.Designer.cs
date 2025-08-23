@@ -4,16 +4,19 @@ using DataManagementApi.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
 
-namespace DataManagementApi.Migrations
+namespace DataManagementApi.Data.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250813025112_Classes")]
+    partial class Classes
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -713,10 +716,6 @@ namespace DataManagementApi.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<string>("Address")
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
-
                     b.Property<int?>("CourseClassId")
                         .HasColumnType("int");
 
@@ -736,10 +735,6 @@ namespace DataManagementApi.Migrations
                     b.Property<string>("FullName")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Note")
-                        .HasMaxLength(1000)
-                        .HasColumnType("nvarchar(1000)");
 
                     b.Property<string>("PhoneNumber")
                         .IsRequired()
@@ -817,22 +812,6 @@ namespace DataManagementApi.Migrations
                     b.Property<int?>("ExaminerId")
                         .HasColumnType("int");
 
-                    b.Property<string>("FileName")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<long?>("FileSize")
-                        .HasColumnType("bigint");
-
-                    b.Property<string>("FileType")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("ReportUrl")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<decimal?>("Score")
-                        .HasPrecision(5, 2)
-                        .HasColumnType("decimal(5,2)");
-
                     b.Property<int>("SemesterId")
                         .HasColumnType("int");
 
@@ -856,9 +835,6 @@ namespace DataManagementApi.Migrations
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<DateTime?>("UploadDate")
                         .HasColumnType("datetime2");
 
                     b.HasKey("Id");
@@ -1258,15 +1234,13 @@ namespace DataManagementApi.Migrations
 
             modelBuilder.Entity("DataManagementApi.Models.Student", b =>
                 {
-                    b.HasOne("DataManagementApi.Models.CourseClass", "CourseClass")
+                    b.HasOne("DataManagementApi.Models.CourseClass", null)
                         .WithMany("Students")
                         .HasForeignKey("CourseClassId");
 
                     b.HasOne("DataManagementApi.Models.Department", "Department")
                         .WithMany()
                         .HasForeignKey("DepartmentId");
-
-                    b.Navigation("CourseClass");
 
                     b.Navigation("Department");
                 });

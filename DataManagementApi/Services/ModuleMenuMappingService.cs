@@ -21,8 +21,9 @@ namespace DataManagementApi.Services
             
             // Academic Modules (Individual)
             { "Student", new List<string> { "/students", "/academic/students" } },
-            { "Lecturer", new List<string> { "/lecturers" } },
+            { "Lecturer", new List<string> { "/lecturers", "/academic/lecturers" } },
             { "Department", new List<string> { "/departments", "/academic/departments" } },
+            { "CourseClass", new List<string> { "/course-classes", "/academic/course-classes" } },
             
             // Business Modules
             { "Partner", new List<string> { "/partners" } },
@@ -34,9 +35,15 @@ namespace DataManagementApi.Services
             { "Academic", new List<string> { "/academic" } }, // Parent menu
             
             // Thesis & Internship
-            { "Thesis", new List<string> { "/thesis", "/thesis-periods" } },
+            { "Thesis", new List<string> { "/thesis" } },
             { "ThesisPeriod", new List<string> { "/thesis-periods" } },
-            { "InternshipPeriod", new List<string> { "/internship-periods", "/internship" } },
+            { "InternshipPeriod", new List<string> { "/internship-periods" } },
+            { "Internship", new List<string> { "/internship" } },
+            
+            // Student Modules
+            { "StudentThesis", new List<string> { "/student/thesis", "/student/thesis/register", "/student/thesis/progress" } },
+            { "StudentInternship", new List<string> { "/student/internship", "/student/internship/register", "/student/internship/progress" } },
+            { "StudentProfile", new List<string> { "/student/profile" } },
         };
 
         /// <summary>
@@ -112,4 +119,4 @@ namespace DataManagementApi.Services
             return null;
         }
     }
-} 
+}

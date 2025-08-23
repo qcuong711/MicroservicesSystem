@@ -1,12 +1,20 @@
 {
   "Version": 1,
-  "Hash": "hSNatRe+0J1FhfNErJOt+KLHz+mvogx/W61NHdz0Xsk=",
+  "Hash": "HVLGwvDjlzFkKVynP9wvK8p2EmGwzIpX3h9GdJJknyQ=",
   "Source": "DataManagementApi",
   "BasePath": "_content/DataManagementApi",
   "Mode": "Default",
   "ManifestType": "Build",
   "ReferencedProjectsConfiguration": [],
-  "DiscoveryPatterns": [],
+  "DiscoveryPatterns": [
+    {
+      "Name": "DataManagementApi\\wwwroot",
+      "Source": "DataManagementApi",
+      "ContentRoot": "D:\\KeyCloakIS\\DataManagementApi\\wwwroot\\",
+      "BasePath": "_content/DataManagementApi",
+      "Pattern": "**"
+    }
+  ],
   "Assets": [],
   "Endpoints": []
 }

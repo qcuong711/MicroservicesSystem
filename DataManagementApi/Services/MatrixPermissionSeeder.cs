@@ -60,6 +60,7 @@ namespace DataManagementApi.Services
                 { "AcademicYear", (false, true, false, false) }, // Xem academic years
                 { "Semester", (false, true, false, false) },     // Xem semesters
                 { "InternshipPeriod", (false, true, false, false) }, // Xem internship periods
+                { "Internship", (false, true, true, false) },    // Có thể xem và sửa internship
                 { "ThesisPeriod", (false, true, false, false) }  // Xem thesis periods
             };
 
@@ -87,7 +88,14 @@ namespace DataManagementApi.Services
                 { "Department", (false, true, false, false) }, // Xem departments
                 { "AcademicYear", (false, true, false, false) }, // Xem academic years
                 { "Semester", (false, true, false, false) },   // Xem semesters
-                { "ThesisPeriod", (false, true, false, false) } // Xem thesis periods
+                { "ThesisPeriod", (false, true, false, false) }, // Xem thesis periods
+                { "InternshipPeriod", (false, true, false, false) }, // Xem internship periods
+                { "Internship", (false, true, false, false) }, // Xem internship
+                
+                // Các module sinh viên mới
+                { "StudentThesis", (true, true, true, false) },     // Quản lý đồ án sinh viên
+                { "StudentInternship", (true, true, true, false) },  // Quản lý thực tập sinh viên
+                { "StudentProfile", (false, true, true, false) }      // Quản lý hồ sơ sinh viên
             };
 
             foreach (var (module, permissions) in studentModules)
@@ -122,4 +130,4 @@ namespace DataManagementApi.Services
             }
         }
     }
-} 
+}

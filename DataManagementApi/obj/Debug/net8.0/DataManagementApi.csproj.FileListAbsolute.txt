@@ -279,3 +279,4 @@ D:\KeyCloakIS\DataManagementApi\obj\Debug\net8.0\refint\DataManagementApi.dll
 D:\KeyCloakIS\DataManagementApi\obj\Debug\net8.0\DataManagementApi.pdb
 D:\KeyCloakIS\DataManagementApi\obj\Debug\net8.0\DataManagementApi.genruntimeconfig.cache
 D:\KeyCloakIS\DataManagementApi\obj\Debug\net8.0\ref\DataManagementApi.dll
+D:\KeyCloakIS\DataManagementApi\bin\Debug\net8.0\DataManagementApi.staticwebassets.runtime.json

@@ -8,9 +8,9 @@ namespace DataManagementApi.Models.Dtos.Lecturer
         [StringLength(100)]
         public string Name { get; set; } = string.Empty;
 
-        [Required]
+        // Đã loại bỏ yêu cầu bắt buộc cho LecturerCode
         [StringLength(20)]
-        public string LecturerCode { get; set; } = string.Empty;
+        public string? LecturerCode { get; set; }
 
         public int? DepartmentId { get; set; }
 

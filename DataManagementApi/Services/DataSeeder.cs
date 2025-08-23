@@ -209,7 +209,9 @@ namespace DataManagementApi.Services
                     new Menu { Name = "Năm học", Path = "/academic/years", Icon = "calendar", DisplayOrder = 1, ParentId = academicParent.Id },
                     new Menu { Name = "Học kỳ", Path = "/academic/semesters", Icon = "calendar-days", DisplayOrder = 2, ParentId = academicParent.Id },
                     new Menu { Name = "Khoa & Chuyên ngành", Path = "/academic/departments", Icon = "building", DisplayOrder = 3, ParentId = academicParent.Id },
-                    new Menu { Name = "Sinh viên", Path = "/academic/students", Icon = "user-graduate", DisplayOrder = 4, ParentId = academicParent.Id }
+                    new Menu { Name = "Sinh viên", Path = "/academic/students", Icon = "user-graduate", DisplayOrder = 4, ParentId = academicParent.Id },
+                    new Menu { Name = "Giảng viên", Path = "/academic/lecturers", Icon = "user-check", DisplayOrder = 5, ParentId = academicParent.Id },
+                    new Menu { Name = "Lớp học phần", Path = "/academic/course-classes", Icon = "users", DisplayOrder = 6, ParentId = academicParent.Id }
                 };
 
                 await _context.Menus.AddRangeAsync(academicChildMenus);
@@ -238,6 +240,8 @@ namespace DataManagementApi.Services
                     m.Name.Contains("Khóa luận") || 
                     m.Name.Contains("Thực tập") || 
                     m.Name.Contains("Sinh viên") ||
+                    m.Name.Contains("Giảng viên") ||
+                    m.Name.Contains("Lớp học phần") ||
                     m.Name.Contains("Phân tích") ||
                     m.Name.Contains("Báo cáo") ||
                     m.Name.Contains("Quản lý đào tạo") ||
@@ -252,12 +256,44 @@ namespace DataManagementApi.Services
                     MenuId = m.Id
                 }).ToList();
 
+                // Tạo menu sinh viên mới
+                var studentParent = new Menu 
+                { 
+                    Name = "Sinh viên", 
+                    Path = "/student", 
+                    Icon = "user-graduate", 
+                    DisplayOrder = 10,
+                    ParentId = null
+                };
+                
+                await _context.Menus.AddAsync(studentParent);
+                await _context.SaveChangesAsync();
+                
+                // Thêm menu con cho sinh viên
+                var studentChildMenus = new[]
+                {
+                    new Menu { Name = "Đồ án", Path = "/student/thesis", Icon = "book", DisplayOrder = 1, ParentId = studentParent.Id },
+                    new Menu { Name = "Đăng ký đề tài", Path = "/student/thesis/register", Icon = "edit", DisplayOrder = 2, ParentId = studentParent.Id },
+                    new Menu { Name = "Tiến độ đồ án", Path = "/student/thesis/progress", Icon = "chart-line", DisplayOrder = 3, ParentId = studentParent.Id },
+                    new Menu { Name = "Thực tập", Path = "/student/internship", Icon = "briefcase", DisplayOrder = 4, ParentId = studentParent.Id },
+                    new Menu { Name = "Đăng ký thực tập", Path = "/student/internship/register", Icon = "edit", DisplayOrder = 5, ParentId = studentParent.Id },
+                    new Menu { Name = "Tiến độ thực tập", Path = "/student/internship/progress", Icon = "chart-line", DisplayOrder = 6, ParentId = studentParent.Id },
+                    new Menu { Name = "Hồ sơ cá nhân", Path = "/student/profile", Icon = "user", DisplayOrder = 7, ParentId = studentParent.Id }
+                };
+                
+                await _context.Menus.AddRangeAsync(studentChildMenus);
+                await _context.SaveChangesAsync();
+                
+                // Cập nhật danh sách menu
+                allMenus = await _context.Menus.ToListAsync();
+                
                 // Student có quyền truy cập một số menu cơ bản
                 var studentMenus = allMenus.Where(m => 
                     m.Name.Contains("Tổng quan") || 
                     m.Name.Contains("Khóa luận") || 
                     m.Name.Contains("Thực tập") ||
-                    m.Name.Contains("Phân tích")
+                    m.Name.Contains("Phân tích") ||
+                    m.Path.StartsWith("/student")
                 ).ToList();
 
                 var studentRoleMenus = studentMenus.Select(m => new RoleMenu

@@ -4,16 +4,19 @@ using DataManagementApi.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
 
-namespace DataManagementApi.Migrations
+namespace DataManagementApi.Data.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250811014125_AddStatusToInternship")]
+    partial class AddStatusToInternship
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -133,60 +136,6 @@ namespace DataManagementApi.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("Business");
-                });
-
-            modelBuilder.Entity("DataManagementApi.Models.CourseClass", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<int>("AcademicYearId")
-                        .HasColumnType("int");
-
-                    b.Property<int?>("AdvisorLecturerId")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<int>("DepartmentId")
-                        .HasColumnType("int");
-
-                    b.Property<bool>("IsActive")
-                        .HasColumnType("bit");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<string>("Notes")
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
-
-                    b.Property<int>("SemesterId")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("AcademicYearId");
-
-                    b.HasIndex("AdvisorLecturerId");
-
-                    b.HasIndex("DepartmentId");
-
-                    b.HasIndex("SemesterId");
-
-                    b.ToTable("Classes");
                 });
 
             modelBuilder.Entity("DataManagementApi.Models.Department", b =>
@@ -713,13 +662,6 @@ namespace DataManagementApi.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<string>("Address")
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
-
-                    b.Property<int?>("CourseClassId")
-                        .HasColumnType("int");
-
                     b.Property<DateTime>("DateOfBirth")
                         .HasColumnType("datetime2");
 
@@ -737,10 +679,6 @@ namespace DataManagementApi.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<string>("Note")
-                        .HasMaxLength(1000)
-                        .HasColumnType("nvarchar(1000)");
-
                     b.Property<string>("PhoneNumber")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
@@ -750,8 +688,6 @@ namespace DataManagementApi.Migrations
                         .HasColumnType("nvarchar(max)");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("CourseClassId");
 
                     b.HasIndex("DepartmentId");
 
@@ -817,22 +753,6 @@ namespace DataManagementApi.Migrations
                     b.Property<int?>("ExaminerId")
                         .HasColumnType("int");
 
-                    b.Property<string>("FileName")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<long?>("FileSize")
-                        .HasColumnType("bigint");
-
-                    b.Property<string>("FileType")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("ReportUrl")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<decimal?>("Score")
-                        .HasPrecision(5, 2)
-                        .HasColumnType("decimal(5,2)");
-
                     b.Property<int>("SemesterId")
                         .HasColumnType("int");
 
@@ -856,9 +776,6 @@ namespace DataManagementApi.Migrations
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<DateTime?>("UploadDate")
                         .HasColumnType("datetime2");
 
                     b.HasKey("Id");
@@ -1051,40 +968,6 @@ namespace DataManagementApi.Migrations
                         .IsRequired();
                 });
 
-            modelBuilder.Entity("DataManagementApi.Models.CourseClass", b =>
-                {
-                    b.HasOne("DataManagementApi.Models.AcademicYear", "AcademicYear")
-                        .WithMany()
-                        .HasForeignKey("AcademicYearId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("DataManagementApi.Models.Lecturer", "AdvisorLecturer")
-                        .WithMany()
-                        .HasForeignKey("AdvisorLecturerId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("DataManagementApi.Models.Department", "Department")
-                        .WithMany()
-                        .HasForeignKey("DepartmentId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("DataManagementApi.Models.Semester", "Semester")
-                        .WithMany()
-                        .HasForeignKey("SemesterId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("AcademicYear");
-
-                    b.Navigation("AdvisorLecturer");
-
-                    b.Navigation("Department");
-
-                    b.Navigation("Semester");
-                });
-
             modelBuilder.Entity("DataManagementApi.Models.Department", b =>
                 {
                     b.HasOne("DataManagementApi.Models.Department", "ParentDepartment")
@@ -1258,15 +1141,9 @@ namespace DataManagementApi.Migrations
 
             modelBuilder.Entity("DataManagementApi.Models.Student", b =>
                 {
-                    b.HasOne("DataManagementApi.Models.CourseClass", "CourseClass")
-                        .WithMany("Students")
-                        .HasForeignKey("CourseClassId");
-
                     b.HasOne("DataManagementApi.Models.Department", "Department")
                         .WithMany()
                         .HasForeignKey("DepartmentId");
-
-                    b.Navigation("CourseClass");
 
                     b.Navigation("Department");
                 });
@@ -1383,11 +1260,6 @@ namespace DataManagementApi.Migrations
                     b.Navigation("PartnerBusiness");
 
                     b.Navigation("ThesisPeriodBusiness");
-                });
-
-            modelBuilder.Entity("DataManagementApi.Models.CourseClass", b =>
-                {
-                    b.Navigation("Students");
                 });
 
             modelBuilder.Entity("DataManagementApi.Models.Department", b =>

@@ -78,7 +78,10 @@ namespace DataManagementApi.Controllers
         {
             try
             {
-                var student = await _context.Students.Include(s => s.Department).FirstOrDefaultAsync(s => s.Id == id && s.DeletedAt == null);
+                var student = await _context.Students
+                    .Include(s => s.Department)
+                    .Include(s => s.CourseClass)
+                    .FirstOrDefaultAsync(s => s.Id == id && s.DeletedAt == null);
                 if (student == null)
                 {
                     return NotFound();
@@ -92,7 +95,11 @@ namespace DataManagementApi.Controllers
                     DepartmentName = student.Department?.Name,
                     Email = student.Email,
                     PhoneNumber = student.PhoneNumber,
-                    DateOfBirth = student.DateOfBirth
+                    DateOfBirth = student.DateOfBirth,
+                    Address = student.Address,
+                    Note = student.Note,
+                    CourseClassId = student.CourseClassId,
+                    CourseClassName = student.CourseClass?.Name
                 };
                 return studentDto;
             }
@@ -117,6 +124,9 @@ namespace DataManagementApi.Controllers
             student.Email = studentDto.Email ?? string.Empty;
             student.PhoneNumber = studentDto.PhoneNumber ?? string.Empty;
             student.DateOfBirth = studentDto.DateOfBirth;
+            student.Address = studentDto.Address;
+            student.Note = studentDto.Note;
+            student.CourseClassId = studentDto.CourseClassId;
             try
             {
                 await _context.SaveChangesAsync();
@@ -125,7 +135,10 @@ namespace DataManagementApi.Controllers
             {
                 return StatusCode(StatusCodes.Status500InternalServerError, "Lỗi cập nhật dữ liệu");
             }
-            var updatedStudent = await _context.Students.Include(s => s.Department).FirstOrDefaultAsync(s => s.Id == id);
+            var updatedStudent = await _context.Students
+                .Include(s => s.Department)
+                .Include(s => s.CourseClass)
+                .FirstOrDefaultAsync(s => s.Id == id);
             if (updatedStudent == null)
             {
                 return NotFound();
@@ -140,6 +153,10 @@ namespace DataManagementApi.Controllers
                 Email = updatedStudent.Email,
                 PhoneNumber = updatedStudent.PhoneNumber,
                 DateOfBirth = updatedStudent.DateOfBirth,
+                Address = updatedStudent.Address,
+                Note = updatedStudent.Note,
+                CourseClassId = updatedStudent.CourseClassId,
+                CourseClassName = updatedStudent.CourseClass?.Name,
                 DeletedAt = updatedStudent.DeletedAt
             };
             return Ok(updatedStudentDto);
@@ -158,10 +175,19 @@ namespace DataManagementApi.Controllers
                     DepartmentId = studentDto.DepartmentId,
                     Email = studentDto.Email ?? string.Empty,
                     PhoneNumber = studentDto.PhoneNumber ?? string.Empty,
-                    DateOfBirth = studentDto.DateOfBirth
+                    DateOfBirth = studentDto.DateOfBirth,
+                    Address = studentDto.Address,
+                    Note = studentDto.Note,
+                    CourseClassId = studentDto.CourseClassId
                 };
                 _context.Students.Add(student);
                 await _context.SaveChangesAsync();
+                
+                // Reload the student with related entities
+                student = await _context.Students
+                    .Include(s => s.Department)
+                    .Include(s => s.CourseClass)
+                    .FirstOrDefaultAsync(s => s.Id == student.Id);
                 var studentReadDto = new StudentReadDto
                 {
                     Id = student.Id,
@@ -171,7 +197,11 @@ namespace DataManagementApi.Controllers
                     DepartmentName = student.Department?.Name,
                     Email = student.Email,
                     PhoneNumber = student.PhoneNumber,
-                    DateOfBirth = student.DateOfBirth
+                    DateOfBirth = student.DateOfBirth,
+                    Address = student.Address,
+                    Note = student.Note,
+                    CourseClassId = student.CourseClassId,
+                    CourseClassName = student.CourseClass?.Name
                 };
                 return CreatedAtAction(nameof(GetStudent), new { id = student.Id }, studentReadDto);
             }

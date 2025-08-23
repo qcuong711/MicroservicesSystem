@@ -187,5 +187,24 @@ namespace DataManagementApi.Controllers
 
             return Ok(roles);
         }
+
+        [HttpGet("users")]
+        public async Task<IActionResult> GetUserOptions([FromQuery] string? search)
+        {
+            var query = _context.Users.AsQueryable().Where(u => u.DeletedAt == null);
+
+            if (!string.IsNullOrEmpty(search))
+            {
+                var lowerSearch = search.ToLower();
+                query = query.Where(u => u.Name.ToLower().Contains(lowerSearch) || u.Email.ToLower().Contains(lowerSearch));
+            }
+
+            var users = await query
+                .Select(u => new { Id = u.Email, Name = $"{u.Name} ({u.Email})" })
+                .Take(MaxItems)
+                .ToListAsync();
+
+            return Ok(users);
+        }
     }
-} 
+}
